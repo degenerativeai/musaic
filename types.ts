@@ -1,3 +1,4 @@
+
 export type TaskType = 'generic' | 'lora' | 'product';
 export type SafetyMode = 'sfw' | 'nsfw';
 
@@ -16,6 +17,7 @@ export interface PromptItem {
 
 export interface IdentityContext {
   name: string;
+  age_estimate: string;
   profession: string;
   backstory: string;
 }

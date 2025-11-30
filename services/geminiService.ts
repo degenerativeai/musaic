@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Schema, Type } from "@google/genai";
 import { PromptItem, IdentityContext, TaskType, SafetyMode, AnalysisResult } from "../types";
 
@@ -31,7 +32,11 @@ ANALYSIS PROTOCOL
 Before generating the final JSON, perform a silent "Visual Sweep" (internal processing only):
 
 Macro Sweep: Identify the scene type, global lighting, atmosphere, and primary subjects.
-Biometric & Demographic Sweep: For human subjects, strictly analyze specific skin tone phenotypes (including undertones), racial/ethnic visual markers, physical build (somatotype), and relative physical measurements/proportions. CRITICALLY: For female subjects, explicitly analyze bust size, shape, and proportion relative to the body. For male subjects, analyze chest dimensions and musculature.
+Biometric & Demographic Sweep: 
+1. AGE ESTIMATION: Strictly estimate the subject's visual age based on nasolabial folds, skin texture, and facial structure. Do not default to "young adult". Be specific (e.g., "19", "24", "45").
+2. PHENOTYPE: Strictly analyze specific skin tone phenotypes (including undertones), racial/ethnic visual markers.
+3. BODY: Physical build (somatotype) and relative physical measurements/proportions. CRITICALLY: For female subjects, explicitly analyze bust size, shape, and proportion relative to the body. For male subjects, analyze chest dimensions and musculature.
+
 Micro Sweep: Scan for textures, imperfections (excluding moles), background clutter, reflections, shadow gradients, and text (OCR).
 Relationship Sweep: Map the spatial and semantic connections between objects.
 
@@ -96,10 +101,11 @@ export const analyzeSubjectImages = async (
               type: Type.OBJECT,
               properties: {
                   name: { type: Type.STRING, description: "A region-appropriate full name based on heritage/phenotype." },
+                  age_estimate: { type: Type.STRING, description: "The estimated visual age (e.g. '19', '24', 'Late 40s')." },
                   profession: { type: Type.STRING, description: "A plausible profession based on vibe/clothing." },
                   backstory: { type: Type.STRING, description: "A brief 1-2 sentence lifestyle backstory." }
               },
-              required: ["name", "profession", "backstory"]
+              required: ["name", "age_estimate", "profession", "backstory"]
           }
       },
       required: ["physical_profile", "identity_inference"]
@@ -112,7 +118,8 @@ export const analyzeSubjectImages = async (
     1. Synthesize a single coherent PHYSICAL PROFILE. Focus on biometrics and visual attributes: Skin tone, Body Shape (Morphology/Measurements), Facial Features, Hair (Color/Texture).
     CRITICAL: Do NOT describe the clothing currently worn in the image (e.g., do NOT say "wearing a red dress"). The profile must be clothing-agnostic so the subject can be dressed in new outfits.
     Exclude moles/birthmarks.
-    2. Based on the visual phenotype and heritage markers, INFER a plausible IDENTITY (Name, Profession, Backstory).
+    2. Based on the visual phenotype and heritage markers, INFER a plausible IDENTITY (Name, Age, Profession, Backstory).
+       - Estimate Age strictly based on visual markers.
        - If they look Mexican, choose a name like 'Marina Gonzalez'.
        - If they look like a travel model, set profession to 'Travel Blogger' and backstory to match.
        - If they look urban, set to 'Marketing Exec' in the city, etc.
@@ -331,6 +338,7 @@ export const generateDatasetPrompts = async (
 
     IDENTITY CONTEXT:
     Name: ${identity.name}
+    Age: ${identity.age_estimate}
     Profession: ${identity.profession}
     Backstory: ${identity.backstory}
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeSubjectImages, generateDatasetPrompts } from './services/geminiService';
 import { PromptCard } from './components/PromptCard';
@@ -33,6 +34,7 @@ export default function App() {
   const [description, setDescription] = useState(''); // Physical Profile
   const [identity, setIdentity] = useState<IdentityContext>({
       name: '',
+      age_estimate: '',
       profession: '',
       backstory: ''
   });
@@ -188,7 +190,7 @@ export default function App() {
         setBodyshot(null);
         setProductImages([null, null, null]);
         setDescription('');
-        setIdentity({ name: '', profession: '', backstory: '' });
+        setIdentity({ name: '', age_estimate: '', profession: '', backstory: '' });
         setTargetTotal(50); 
     }
 
@@ -250,6 +252,7 @@ export default function App() {
         
         const newIdentity = {
             name: result.identity_inference.name,
+            age_estimate: result.identity_inference.age_estimate,
             profession: result.identity_inference.profession,
             backstory: result.identity_inference.backstory,
         };
@@ -584,15 +587,25 @@ export default function App() {
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Profession</label>
+                            <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Age (Est.)</label>
                             <input 
                                 type="text"
-                                value={identity.profession}
-                                onChange={(e) => setIdentity({...identity, profession: e.target.value})}
-                                placeholder="Auto-inferred..."
+                                value={identity.age_estimate}
+                                onChange={(e) => setIdentity({...identity, age_estimate: e.target.value})}
+                                placeholder="e.g. 24"
                                 className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none"
                             />
                         </div>
+                    </div>
+                    <div>
+                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Profession</label>
+                        <input 
+                            type="text"
+                            value={identity.profession}
+                            onChange={(e) => setIdentity({...identity, profession: e.target.value})}
+                            placeholder="Auto-inferred..."
+                            className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none"
+                        />
                     </div>
                     <div>
                         <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Backstory / Vibe</label>
