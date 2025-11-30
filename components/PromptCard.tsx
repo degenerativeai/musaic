@@ -74,6 +74,41 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
       ) : null
   );
 
+  // Helper to render clothing item safely regardless of keys used (type/style/item)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ClothingItem = ({ label, item }: { label: string, item: any }) => {
+      let content = <span className="text-gray-500 italic text-[10px]">Not visible / Not specified</span>;
+
+      if (item && Object.keys(item).length > 0) {
+          if (typeof item === 'string') {
+              content = <span className="text-xs text-gray-300">{item}</span>;
+          } else {
+              // Check for various keys the AI might use
+              const type = item.type || item.style || item.item || item.name || "Garment";
+              const color = item.color || "";
+              const details = item.details || "";
+              
+              content = (
+                  <div className="flex flex-col">
+                     <span className="text-xs text-gray-200 font-medium">
+                        {color} {type}
+                     </span>
+                     {details && (
+                         <span className="text-[9px] text-gray-500 leading-tight mt-0.5">{details}</span>
+                     )}
+                  </div>
+              );
+          }
+      }
+
+      return (
+          <div className="mb-2">
+              <span className={`text-[10px] uppercase font-bold text-rose-300/70 block mb-0.5`}>{label}</span>
+              {content}
+          </div>
+      );
+  };
+
   return (
     <div className={`group relative bg-charcoal border rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-black/60 ${
       isCopied 
@@ -169,17 +204,9 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
                             colorClass="text-rose-400 border-rose-500"
                             icon={<div className="w-3 h-3 rounded-full bg-rose-400/50" />} 
                         />
-                        <div className="space-y-2">
-                             {/* Top */}
-                             <div>
-                                 <span className="text-[10px] text-rose-300/70 uppercase font-bold">Top</span>
-                                 <p className="text-xs text-gray-300">{parsedContent.subject?.clothing?.top?.color} {parsedContent.subject?.clothing?.top?.type}</p>
-                             </div>
-                             {/* Bottom */}
-                             <div>
-                                 <span className="text-[10px] text-rose-300/70 uppercase font-bold">Bottom</span>
-                                 <p className="text-xs text-gray-300">{parsedContent.subject?.clothing?.bottom?.color} {parsedContent.subject?.clothing?.bottom?.type}</p>
-                             </div>
+                        <div className="space-y-1">
+                             <ClothingItem label="Top" item={parsedContent.subject?.clothing?.top} />
+                             <ClothingItem label="Bottom" item={parsedContent.subject?.clothing?.bottom} />
                         </div>
                     </div>
 
