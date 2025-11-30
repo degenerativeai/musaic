@@ -185,8 +185,24 @@ export const generateDatasetPrompts = async (
         });
       }
 
+  } else if (taskType === 'generic') {
+      // GENERIC MODE: No strict buckets. Focus on UGC Realism and Variety.
+      for (let i = 0; i < count; i++) {
+        const absoluteIndex = startCount + i;
+        batchManifest.push({
+            index: i,
+            absoluteIndex,
+            meta: {
+                type: "UGC LIFESTYLE",
+                index: absoluteIndex + 1,
+                total: totalTarget,
+                label: "Authentic Realism / Instagram Aesthetic"
+            }
+        });
+      }
+
   } else {
-      // LORA / GENERIC MODE: Strict Framing Ratios
+      // LORA MODE: Strict Framing Ratios (The Century Protocol)
       const headshotLimit = Math.max(1, Math.floor(totalTarget * 0.35)); 
       const halfBodyLimit = headshotLimit + Math.max(1, Math.floor(totalTarget * 0.30));
       const threeQuarterLimit = halfBodyLimit + Math.max(1, Math.floor(totalTarget * 0.20));
@@ -257,7 +273,7 @@ export const generateDatasetPrompts = async (
 
   let subjectDirective = "";
   if (taskType === 'generic') {
-      subjectDirective = `SUBJECT: GENERIC. Create a generic description (e.g., "A young woman"). Do NOT use the specific physical profile.`;
+      subjectDirective = `SUBJECT: GENERIC. Create a generic description (e.g., "A young woman", "A fitness influencer"). Do NOT use the specific physical profile. Focus on VIBE and AESTHETIC.`;
   } else {
       subjectDirective = `SUBJECT: SPECIFIC. Use this PHYSICAL PROFILE: "${subjectDescription}"`;
   }
@@ -301,7 +317,11 @@ export const generateDatasetPrompts = async (
   if (taskType === 'product') {
       framingRules = `3. PRODUCT FOCUS: Ensure the product is the focal point or naturally integrated. Highlight specific product details mentioned in the Product Directive.
       4. VARIETY: Do NOT follow a fixed headshot/body shot ratio. Use your knowledge to create OPTIMAL ad placement shots.`;
+  } else if (taskType === 'generic') {
+      framingRules = `3. REALISM FOCUS: Prioritize authentic lighting, natural poses, and "Instagram-style" composition. 
+      4. VARIETY: Do NOT use strict Headshot/BodyShot buckets. Generate a diverse mix of shot types (Close-up, Full Body, Selfie, Candid) suitable for a high-quality realistic dataset.`;
   } else {
+      // LoRA Mode
       framingRules = `3. For HEADSHOTS: Focus on face/hair/top. 
       4. For BODY SHOTS: Inject full physical profile details.`;
   }
