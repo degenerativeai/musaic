@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Schema, Type } from "@google/genai";
 import { PromptItem, IdentityContext, TaskType, SafetyMode, AnalysisResult } from "../types";
 
@@ -65,6 +64,11 @@ Always use this exact structure:
     "mirror_rules": "[Rules for mirror selfies]",
     "age": "[Approx age]",
     "expression": "[Emotion]",
+    "imperfections": {
+       "skin": "[Texture/Pores/Flush]",
+       "hair": "[Flyaways/Messy strands]",
+       "general": "[Sweat/Creases/Lint]"
+    },
     "hair": { "color": "...", "style": "..." },
     "body": "[Physical Profile - injected]",
     "clothing": { "top": {...}, "bottom": {...} },
@@ -354,6 +358,7 @@ export const generateDatasetPrompts = async (
     CRITICAL RULES:
     1. STRICTLY follow the "Item" order. Item 1 in your output MUST match Item 1 in the manifest.
     2. UNIQUE OUTFITS: Every single prompt must have a UNIQUE outfit. Do not repeat the outfit from the reference image. Invent new clothes that match the 'setting' and 'weather'.
+    3. IMPERFECTIONS: You MUST populate the 'imperfections' object for every prompt.
     ${framingRules}
     
     Return a JSON array of objects with 'text' (stringified JSON) and 'tags'.

@@ -74,45 +74,36 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
       ) : null
   );
 
-  // Robust Clothing Item Renderer
+  // Helper to render clothing item safely regardless of keys used (type/style/item)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ClothingItem = ({ label, item }: { label: string, item: any }) => {
-      let content = <span className="text-gray-600 italic text-[10px]">Not specified</span>;
+      let content = <span className="text-gray-500 italic text-[10px]">Not visible / Not specified</span>;
 
-      // Check if item exists and has content
-      const hasContent = item && (
-          (typeof item === 'string' && item.length > 0) || 
-          (typeof item === 'object' && Object.keys(item).length > 0)
-      );
-
-      if (hasContent) {
+      if (item && Object.keys(item).length > 0) {
           if (typeof item === 'string') {
               content = <span className="text-xs text-gray-300">{item}</span>;
           } else {
-              // Aggressively search for relevant keys
-              const type = item.type || item.style || item.item || item.name || item.description || "";
+              // Check for various keys the AI might use
+              const type = item.type || item.style || item.item || item.name || "Garment";
               const color = item.color || "";
-              const details = item.details || item.fit || item.material || "";
-
-              // If we found ANY useful text
-              if (type || color || details) {
-                content = (
-                    <div className="flex flex-col">
-                       <span className="text-xs text-gray-200 font-medium leading-tight">
-                          {color ? `${color} ` : ''}{type || "Garment"}
-                       </span>
-                       {details && (
-                           <span className="text-[9px] text-gray-500 leading-tight mt-0.5">{details}</span>
-                       )}
-                    </div>
-                );
-              }
+              const details = item.details || "";
+              
+              content = (
+                  <div className="flex flex-col">
+                     <span className="text-xs text-gray-200 font-medium">
+                        {color} {type}
+                     </span>
+                     {details && (
+                         <span className="text-[9px] text-gray-500 leading-tight mt-0.5">{details}</span>
+                     )}
+                  </div>
+              );
           }
       }
 
       return (
           <div className="mb-2">
-              <span className={`text-[10px] uppercase font-bold text-rose-300/60 block mb-0.5`}>{label}</span>
+              <span className={`text-[10px] uppercase font-bold text-rose-300/70 block mb-0.5`}>{label}</span>
               {content}
           </div>
       );
@@ -199,6 +190,28 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
                             <KeyVal label="Age" val={parsedContent.subject?.age} />
                             <KeyVal label="Expression" val={parsedContent.subject?.expression} />
                             <KeyVal label="Hair" val={`${parsedContent.subject?.hair?.color || ''}, ${parsedContent.subject?.hair?.style || ''}`} />
+                            
+                            {/* Imperfections Section */}
+                            {parsedContent.subject?.imperfections && (
+                                <div className="mt-2 pt-2 border-t border-indigo-500/10">
+                                    <span className="text-[10px] text-gray-500 block mb-1 font-bold uppercase">Authenticity</span>
+                                    <div className="grid grid-cols-2 gap-1">
+                                        {parsedContent.subject.imperfections.skin && (
+                                             <div>
+                                                <span className="text-[9px] text-indigo-300/60 block">Skin</span>
+                                                <p className="text-[10px] text-gray-400 leading-tight">{parsedContent.subject.imperfections.skin}</p>
+                                             </div>
+                                        )}
+                                        {parsedContent.subject.imperfections.hair && (
+                                             <div>
+                                                <span className="text-[9px] text-indigo-300/60 block">Hair</span>
+                                                <p className="text-[10px] text-gray-400 leading-tight">{parsedContent.subject.imperfections.hair}</p>
+                                             </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="mt-2 pt-2 border-t border-indigo-500/10">
                                 <span className="text-[10px] text-gray-500 block mb-1">Makeup / Face</span>
                                 <p className="text-xs text-gray-400 line-clamp-2">{parsedContent.subject?.face?.makeup}</p>
