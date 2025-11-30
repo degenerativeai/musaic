@@ -157,7 +157,17 @@ export const generateDatasetPrompts = async (
   const { taskType, subjectDescription, identity, safetyMode, productImages, count, startCount, totalTarget } = params;
 
   // --- 1. Manifest Generation (Pre-calculation) ---
-  const batchManifest = [];
+  // Explicitly type the manifest array to avoid implicit 'any' errors in strict mode
+  const batchManifest: {
+      index: number;
+      absoluteIndex: number;
+      meta: {
+          type: string;
+          index: number;
+          total: number;
+          label: string;
+      }
+  }[] = [];
 
   if (taskType === 'product') {
       // PRODUCT MODE: Ignore framing ratios. Optimize for ad placement variety.
