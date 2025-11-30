@@ -74,36 +74,45 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
       ) : null
   );
 
-  // Helper to render clothing item safely regardless of keys used (type/style/item)
+  // Robust Clothing Item Renderer
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ClothingItem = ({ label, item }: { label: string, item: any }) => {
-      let content = <span className="text-gray-500 italic text-[10px]">Not visible / Not specified</span>;
+      let content = <span className="text-gray-600 italic text-[10px]">Not specified</span>;
 
-      if (item && Object.keys(item).length > 0) {
+      // Check if item exists and has content
+      const hasContent = item && (
+          (typeof item === 'string' && item.length > 0) || 
+          (typeof item === 'object' && Object.keys(item).length > 0)
+      );
+
+      if (hasContent) {
           if (typeof item === 'string') {
               content = <span className="text-xs text-gray-300">{item}</span>;
           } else {
-              // Check for various keys the AI might use
-              const type = item.type || item.style || item.item || item.name || "Garment";
+              // Aggressively search for relevant keys
+              const type = item.type || item.style || item.item || item.name || item.description || "";
               const color = item.color || "";
-              const details = item.details || "";
-              
-              content = (
-                  <div className="flex flex-col">
-                     <span className="text-xs text-gray-200 font-medium">
-                        {color} {type}
-                     </span>
-                     {details && (
-                         <span className="text-[9px] text-gray-500 leading-tight mt-0.5">{details}</span>
-                     )}
-                  </div>
-              );
+              const details = item.details || item.fit || item.material || "";
+
+              // If we found ANY useful text
+              if (type || color || details) {
+                content = (
+                    <div className="flex flex-col">
+                       <span className="text-xs text-gray-200 font-medium leading-tight">
+                          {color ? `${color} ` : ''}{type || "Garment"}
+                       </span>
+                       {details && (
+                           <span className="text-[9px] text-gray-500 leading-tight mt-0.5">{details}</span>
+                       )}
+                    </div>
+                );
+              }
           }
       }
 
       return (
           <div className="mb-2">
-              <span className={`text-[10px] uppercase font-bold text-rose-300/70 block mb-0.5`}>{label}</span>
+              <span className={`text-[10px] uppercase font-bold text-rose-300/60 block mb-0.5`}>{label}</span>
               {content}
           </div>
       );
