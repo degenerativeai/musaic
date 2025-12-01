@@ -189,7 +189,6 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
                         <div className="space-y-1">
                             <KeyVal label="Age" val={parsedContent.subject?.age} />
                             <KeyVal label="Expression" val={parsedContent.subject?.expression} />
-                            <KeyVal label="Hair" val={`${parsedContent.subject?.hair?.color || ''}, ${parsedContent.subject?.hair?.style || ''}`} />
                             
                             {/* Imperfections Section */}
                             {parsedContent.subject?.imperfections && (
@@ -211,11 +210,6 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
                                     </div>
                                 </div>
                             )}
-
-                            <div className="mt-2 pt-2 border-t border-indigo-500/10">
-                                <span className="text-[10px] text-gray-500 block mb-1">Makeup / Face</span>
-                                <p className="text-xs text-gray-400 line-clamp-2">{parsedContent.subject?.face?.makeup}</p>
-                            </div>
                         </div>
                     </div>
 
