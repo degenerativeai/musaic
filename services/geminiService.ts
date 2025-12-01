@@ -24,20 +24,29 @@ You are VisionStruct, an advanced Computer Vision & Data Serialization Engine. Y
 CORE DIRECTIVE
 Do not summarize. Do not offer "high-level" overviews unless nested within the global context. You must capture maximal visual data available in the image. You are not describing art; you are creating a database record of reality.
 
-IMPORTANT EXCLUSION:
-Do NOT describe moles or birthmarks. They are too specific and difficult to reproduce consistently. Normal skin imperfections like pores, freckles, or slight texture are acceptable and encouraged.
+IMPORTANT EXCLUSIONS (CRITICAL):
+1. MOLES/BIRTHMARKS: Do NOT describe moles or birthmarks (too specific/hard to reproduce).
+2. STRUCTURAL FACIAL GEOMETRY: Do NOT describe the shape of eyes, nose, lips, or jawline. These features are handled by a separate reference image. Describing them creates conflicts.
+   - Example (BAD): "Large almond-shaped brown eyes, straight nose."
+   - Example (GOOD): "Warm olive skin tone with slight texture on cheeks."
 
 ANALYSIS PROTOCOL
 Before generating the final JSON, perform a silent "Visual Sweep" (internal processing only):
 
 Macro Sweep: Identify the scene type, global lighting, atmosphere, and primary subjects.
-Biometric & Demographic Sweep: 
-1. AGE ESTIMATION: Strictly estimate the subject's visual age based on nasolabial folds, skin texture, and facial structure. Do not default to "young adult". Be specific (e.g., "19", "24", "45").
-2. PHENOTYPE: Strictly analyze specific skin tone phenotypes (including undertones), racial/ethnic visual markers.
-3. BODY: Physical build (somatotype) and relative physical measurements/proportions. CRITICALLY: For female subjects, explicitly analyze bust size, shape, and proportion relative to the body. For male subjects, analyze chest dimensions and musculature.
 
-Micro Sweep: Scan for textures, imperfections (excluding moles), background clutter, reflections, shadow gradients, and text (OCR).
-Relationship Sweep: Map the spatial and semantic connections between objects.
+Biometric & Demographic Sweep: 
+1. AGE ESTIMATION: Strictly estimate the subject's visual age (e.g., "19", "24", "45").
+2. PHENOTYPE: Strictly analyze specific skin tone phenotypes (including undertones) and skin texture (pores, sheen).
+3. BODY METRICS (MAXIMAL DETAIL): You MUST provide a granular anatomical analysis of the body:
+   - Height: Estimate relative height (e.g. "Petite", "Statuesque", "Approx 5'7").
+   - Somatotype: Ectomorph/Mesomorph/Endomorph.
+   - Bust: Detailed analysis of size, shape, fullness, and proportion relative to frame.
+   - Waist: Definition, circumference relative to hips, stomach tone (flat, soft, abs).
+   - Hips & Glutes: Width, shape (curvy, narrow), and projection.
+   - Limbs: Tone, musculature, and length.
+
+Micro Sweep: Scan for textures, imperfections (flyaways, skin texture, fabric pull), background clutter.
 
 OUTPUT FORMAT (STRICT)
 You must return ONLY a single valid JSON object.
@@ -100,7 +109,7 @@ export const analyzeSubjectImages = async (
   const schema: Schema = {
       type: Type.OBJECT,
       properties: {
-          physical_profile: { type: Type.STRING, description: "The detailed VisionStruct analysis text of physical attributes." },
+          physical_profile: { type: Type.STRING, description: "The detailed VisionStruct analysis text focusing strictly on Body Metrics and Skin Texture (No facial geometry)." },
           identity_inference: {
               type: Type.OBJECT,
               properties: {
@@ -119,14 +128,13 @@ export const analyzeSubjectImages = async (
     text: `${VISION_STRUCT_DIRECTIVE}
     
     TASK: Analyze the provided image(s). 
-    1. Synthesize a single coherent PHYSICAL PROFILE. Focus on biometrics and visual attributes: Skin tone, Body Shape (Morphology/Measurements), Facial Features, Hair (Color/Texture).
-    CRITICAL: Do NOT describe the clothing currently worn in the image (e.g., do NOT say "wearing a red dress"). The profile must be clothing-agnostic so the subject can be dressed in new outfits.
-    Exclude moles/birthmarks.
+    1. Synthesize a single coherent PHYSICAL PROFILE. 
+       - PRIMARY FOCUS: Granular Body Metrics (Height, Bust, Waist, Hips, Glutes, Stomach, Musculature).
+       - SECONDARY FOCUS: Skin Tone, Texture, and Realistic Imperfections (pores, flyaways).
+       - STRICT EXCLUSION: Do NOT describe structural facial geometry (eyes, nose, mouth shape) as this conflicts with reference images.
+       - CLOTHING: Do NOT describe the clothing currently worn.
+    
     2. Based on the visual phenotype and heritage markers, INFER a plausible IDENTITY (Name, Age, Profession, Backstory).
-       - Estimate Age strictly based on visual markers.
-       - If they look Mexican, choose a name like 'Marina Gonzalez'.
-       - If they look like a travel model, set profession to 'Travel Blogger' and backstory to match.
-       - If they look urban, set to 'Marketing Exec' in the city, etc.
     
     Return the result as JSON.`
   });
@@ -161,7 +169,7 @@ export const generateDatasetPrompts = async (
       count: number,
       startCount: number,
       totalTarget: number,
-      previousSettings?: string[] // New param for anti-repetition
+      previousSettings?: string[]
   }
 ): Promise<PromptItem[]> => {
   const ai = getAiClient();
@@ -169,6 +177,7 @@ export const generateDatasetPrompts = async (
   const { taskType, subjectDescription, identity, safetyMode, productImages, count, startCount, totalTarget, previousSettings } = params;
 
   // --- 1. Manifest Generation (Pre-calculation) ---
+  // Explicitly type the manifest array to avoid implicit 'any' errors in strict mode
   const batchManifest: {
       index: number;
       absoluteIndex: number;
@@ -181,7 +190,7 @@ export const generateDatasetPrompts = async (
   }[] = [];
 
   if (taskType === 'product') {
-      // PRODUCT MODE
+      // PRODUCT MODE: Ignore framing ratios. Optimize for ad placement variety.
       for (let i = 0; i < count; i++) {
         const absoluteIndex = startCount + i;
         batchManifest.push({
@@ -197,7 +206,7 @@ export const generateDatasetPrompts = async (
       }
 
   } else if (taskType === 'generic') {
-      // GENERIC MODE
+      // GENERIC MODE: No strict buckets. Focus on UGC Realism and Variety.
       for (let i = 0; i < count; i++) {
         const absoluteIndex = startCount + i;
         batchManifest.push({
@@ -213,7 +222,7 @@ export const generateDatasetPrompts = async (
       }
 
   } else {
-      // LORA MODE: Strict Framing Ratios
+      // LORA MODE: Strict Framing Ratios (The Century Protocol)
       const headshotLimit = Math.max(1, Math.floor(totalTarget * 0.35)); 
       const halfBodyLimit = headshotLimit + Math.max(1, Math.floor(totalTarget * 0.30));
       const threeQuarterLimit = halfBodyLimit + Math.max(1, Math.floor(totalTarget * 0.20));
@@ -225,6 +234,7 @@ export const generateDatasetPrompts = async (
 
       for (let i = 0; i < count; i++) {
         const absoluteIndex = startCount + i; // 0-based index
+        const currentNumber = absoluteIndex + 1; // 1-based number for display
         
         let type = "";
         let label = "";
@@ -236,6 +246,7 @@ export const generateDatasetPrompts = async (
             categoryTotal = headshotLimit;
             categoryIndex = absoluteIndex + 1;
             
+            // Determine specific label
             if (absoluteIndex < MANDATORY_SEQUENCE.length) {
                 label = MANDATORY_SEQUENCE[absoluteIndex];
             } else {
@@ -262,7 +273,7 @@ export const generateDatasetPrompts = async (
         }
 
         batchManifest.push({
-            index: i,
+            index: i, // Index within this batch response
             absoluteIndex,
             meta: {
                 type,
@@ -282,25 +293,25 @@ export const generateDatasetPrompts = async (
 
   let subjectDirective = "";
   if (taskType === 'generic') {
-      subjectDirective = `SUBJECT: GENERIC. Create a generic description. Focus on VIBE and AESTHETIC.`;
+      subjectDirective = `SUBJECT: GENERIC. Create a generic description (e.g., "A young woman", "A fitness influencer"). Do NOT use the specific physical profile. Focus on VIBE and AESTHETIC.`;
   } else {
       subjectDirective = `SUBJECT: SPECIFIC. Use this PHYSICAL PROFILE: "${subjectDescription}"`;
   }
 
-  // NEW ANATOMICAL CLOTHING DIRECTIVE
+  // ANATOMICAL WARDROBE DIRECTIVE (Revised "NSFW" Logic)
   let clothingDirective = "";
   if (safetyMode === 'nsfw' && taskType !== 'generic') {
       clothingDirective = `WARDROBE DIRECTIVE: ANATOMICAL / FIGURE-FORMING.
       The goal is to accurately map the subject's somatotype for LoRA training using high-fidelity clothing descriptions.
       
       KEYWORDS TO USE:
-      - "Second-skin fit", "Anatomical seaming", "Compressive activewear", "Sculpted bodice", "Bias-cut", "Articulated fit", "Micro-ribbed", "Body-contouring".
+      - "Second-skin fit", "Anatomical seaming", "Compressive activewear", "Sculpted bodice", "Bias-cut", "Articulated fit", "Micro-ribbed", "Body-contouring", "Sheath silhouette".
       
       INSTRUCTIONS:
-      1. Clothing must trace the body's topography. Avoid loose, baggy, or obscuring drapes.
+      1. Clothing must trace the body's topography exactly. Avoid loose, baggy, or obscuring drapes.
       2. For Activewear: Use specific terms like "racerback sports bra", "high-compression leggings", "biker shorts".
       3. For Casual: Use "fitted baby tee", "bodycon midi", "skinny jeans", "corset top".
-      4. Avoid generic terms like "sexy" or "revealing". Use technical fashion terms that describe the FIT.`;
+      4. Avoid generic terms like "sexy" or "revealing". Use technical fashion terms that describe the TIGHTNESS and FIT.`;
   } else {
       clothingDirective = `WARDROBE DIRECTIVE: SFW (Modest/Standard). Casual, standard, non-revealing clothing appropriate for the setting.`;
   }
@@ -316,19 +327,29 @@ export const generateDatasetPrompts = async (
       productDirective = `
       TASK MODE: UGC PRODUCT ADVERTISEMENT
       1. INTEGRATION: These are PRODUCT SHOTS. Integrate the product naturally into the scene.
-      2. UGC STYLE: The photos should look like "User Generated Content" ads for social media.
-      3. CREATIVE BRANDING (CRITICAL): Invent brand names if missing.
-      4. COMPOSITION: Optimize for product visibility.
+         - If multiple images are provided (e.g., bar + packaging), use them creatively (e.g., subject eating the bar, packaging sitting on table in foreground).
+      2. UGC STYLE: The photos should look like "User Generated Content" ads for social media. High quality but authentic, influential, and engaging.
+      3. CREATIVE BRANDING (CRITICAL):
+         - Analyze the product images. If they look generic, unbranded, or lack clear packaging, you MUST INVENT a creative brand name, a slogan, and describe the packaging design in the prompt.
+         - Treat it as a "Situational Mockup" for a client.
+         - Example: "Holding a 'FrostBite' ice cream bar, wrapper with blue snowflakes visible on the cafe table."
+      4. COMPOSITION STRATEGY:
+         - IGNORE standard portrait ratios (Headshot/Half Body/etc).
+         - OPTIMIZE for product visibility and ad appeal.
+         - VARY the shot types: Detail shots, POV shots, Lifestyle integration, Environmental shots.
       `;
   }
 
   // Framing Rules
   let framingRules = "";
   if (taskType === 'product') {
-      framingRules = `3. PRODUCT FOCUS: Ensure the product is the focal point.`;
+      framingRules = `3. PRODUCT FOCUS: Ensure the product is the focal point or naturally integrated. Highlight specific product details mentioned in the Product Directive.
+      4. VARIETY: Do NOT follow a fixed headshot/body shot ratio. Use your knowledge to create OPTIMAL ad placement shots.`;
   } else if (taskType === 'generic') {
-      framingRules = `3. REALISM FOCUS: Prioritize authentic lighting and "Instagram-style" composition.`;
+      framingRules = `3. REALISM FOCUS: Prioritize authentic lighting, natural poses, and "Instagram-style" composition. 
+      4. VARIETY: Do NOT use strict Headshot/BodyShot buckets. Generate a diverse mix of shot types (Close-up, Full Body, Selfie, Candid) suitable for a high-quality realistic dataset.`;
   } else {
+      // LoRA Mode
       framingRules = `3. For HEADSHOTS: Focus on face/hair/top. 
       4. For BODY SHOTS: Inject full physical profile details.`;
   }
@@ -336,8 +357,8 @@ export const generateDatasetPrompts = async (
   // Anti-Repetition Logic
   let repetitionDirective = "";
   if (previousSettings && previousSettings.length > 0) {
-      // We pass the last 20 settings to keep the context window manageable but effective
-      const recentSettings = previousSettings.slice(-20).join(", ");
+      // Pass last 25 settings to maintain context window health while preventing repetition
+      const recentSettings = previousSettings.slice(-25).join(", ");
       repetitionDirective = `AVOID REPETITION: The following settings/scenarios have ALREADY been generated and must NOT be used again: [${recentSettings}]. Invent completely NEW locations and activities.`;
   }
 
@@ -361,9 +382,9 @@ export const generateDatasetPrompts = async (
     ${manifestString}
 
     CRITICAL RULES:
-    1. STRICTLY follow the "Item" order.
-    2. UNIQUE OUTFITS: Every single prompt must have a UNIQUE outfit.
-    3. IMPERFECTIONS: You MUST populate the 'imperfections' object.
+    1. STRICTLY follow the "Item" order. Item 1 in your output MUST match Item 1 in the manifest.
+    2. UNIQUE OUTFITS: Every single prompt must have a UNIQUE outfit. Do not repeat the outfit from the reference image. Invent new clothes that match the 'setting' and 'weather'.
+    3. IMPERFECTIONS: You MUST populate the 'imperfections' object for every prompt.
     4. COMPLETENESS CHECK: Ensure every single JSON object in the array is fully formed with all fields (Subject, Clothing, Background, Photography). Do not truncate the last items.
     ${framingRules}
     
@@ -391,7 +412,7 @@ export const generateDatasetPrompts = async (
       config: {
         responseMimeType: "application/json",
         responseSchema: schema,
-        temperature: 1, // High temperature for variety
+        temperature: 1,
       }
     });
 
