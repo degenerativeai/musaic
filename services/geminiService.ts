@@ -4,18 +4,18 @@ import { PromptItem, IdentityContext, TaskType, SafetyMode, AnalysisResult } fro
 
 // Security: Retrieve key from session storage dynamically. Never store in variables.
 const getAiClient = () => {
-    const key = sessionStorage.getItem("gemini_api_key");
-    if (!key) throw new Error("API_KEY_MISSING");
-    return new GoogleGenAI({ apiKey: key });
+  const key = sessionStorage.getItem("gemini_api_key");
+  if (!key) throw new Error("API_KEY_MISSING");
+  return new GoogleGenAI({ apiKey: key });
 };
 
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
 // Helper to extract MIME type and data from Base64 Data URI
 const parseDataUrl = (dataUrl: string) => {
-    const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
-    if (!matches) throw new Error("Invalid image data format");
-    return { mimeType: matches[1], data: matches[2] };
+  const matches = dataUrl.match(/^data:(.+);base64,(.+)$/);
+  if (!matches) throw new Error("Invalid image data format");
+  return { mimeType: matches[1], data: matches[2] };
 };
 
 const LORA_FORGE_DIRECTIVE = `
@@ -98,38 +98,40 @@ CRITICAL RULES:
 `;
 
 export const analyzeSubjectImages = async (
-    headshotDataUrl: string | null, 
-    bodyshotDataUrl: string | null
+  headshotDataUrl: string | null,
+  bodyshotDataUrl: string | null
 ): Promise<AnalysisResult> => {
   const ai = getAiClient();
   if (!headshotDataUrl && !bodyshotDataUrl) throw new Error("No images provided");
 
   const parts = [];
   if (headshotDataUrl) {
-      const { mimeType, data } = parseDataUrl(headshotDataUrl);
-      parts.push({ inlineData: { mimeType, data } });
+    const { mimeType, data } = parseDataUrl(headshotDataUrl);
+    parts.push({ inlineData: { mimeType, data } });
   }
   if (bodyshotDataUrl) {
-      const { mimeType, data } = parseDataUrl(bodyshotDataUrl);
-      parts.push({ inlineData: { mimeType, data } });
+    const { mimeType, data } = parseDataUrl(bodyshotDataUrl);
+    parts.push({ inlineData: { mimeType, data } });
   }
 
   const schema: Schema = {
-      type: Type.OBJECT,
-      properties: {
-        identity_profile: {
-            type: Type.OBJECT,
-            properties: {
-                uid: { type: Type.STRING, description: "Subject Name" },
-                archetype_anchor: { type: Type.STRING, description: "Broad category only (e.g. 'Young woman, commercial model aesthetic')" },
-                facial_description: { type: Type.STRING, description: "MUST BE EMPTY STRING (SILENT)" },
-                body_stack: { type: Type.STRING, description: "High density anatomical description: Somatotype, Bust, Waist, Hips, Glutes, Limbs." },
-                realism_stack: { type: Type.STRING, description: "Camera physics tags: subsurface scattering, skin texture, etc." }
-            },
-            required: ["uid", "archetype_anchor", "facial_description", "body_stack", "realism_stack"]
-        }
-      },
-      required: ["identity_profile"]
+    type: Type.OBJECT,
+    properties: {
+      identity_profile: {
+        type: Type.OBJECT,
+        properties: {
+          uid: { type: Type.STRING, description: "Inferred Name (Culturally appropriate based on visual heritage) or Creative Unique Name" },
+          age_estimate: { type: Type.STRING, description: "Estimated age (e.g. '25 years old')" },
+          nationality: { type: Type.STRING, description: "Estimated ethnic heritage/nationality" },
+          archetype_anchor: { type: Type.STRING, description: "Broad category only (e.g. 'Young woman, commercial model aesthetic')" },
+          facial_description: { type: Type.STRING, description: "MUST BE EMPTY STRING (SILENT)" },
+          body_stack: { type: Type.STRING, description: "High density anatomical description: Somatotype, Bust, Waist, Hips, Glutes, Limbs." },
+          realism_stack: { type: Type.STRING, description: "Camera physics tags: subsurface scattering, skin texture, etc." }
+        },
+        required: ["uid", "age_estimate", "nationality", "archetype_anchor", "facial_description", "body_stack", "realism_stack"]
+      }
+    },
+    required: ["identity_profile"]
   };
 
   parts.push({
@@ -137,6 +139,7 @@ export const analyzeSubjectImages = async (
     
     TASK: Analyze the provided images and generate the Identity Profile.
     REMEMBER: Facial Description must be SILENT (Empty). Body Stack must be LOUD (Detailed).
+    NAME INFERENCE: Assign a fitting name based on the subject's apparent heritage (e.g. 'Yuki' for Japanese, 'Elena' for Eastern European).
     Return JSON.`
   });
 
@@ -162,122 +165,122 @@ export const analyzeSubjectImages = async (
 
 export const generateDatasetPrompts = async (
   params: {
-      taskType: TaskType,
-      subjectDescription: string, // Maps to Body Stack
-      identity: IdentityContext, // backstory maps to Realism Stack, profession to Archetype
-      safetyMode: SafetyMode,
-      productImages?: string[],
-      count: number,
-      startCount: number,
-      totalTarget: number,
-      previousSettings?: string[]
+    taskType: TaskType,
+    subjectDescription: string, // Maps to Body Stack
+    identity: IdentityContext, // backstory maps to Realism Stack, profession to Archetype
+    safetyMode: SafetyMode,
+    productImages?: string[],
+    count: number,
+    startCount: number,
+    totalTarget: number,
+    previousSettings?: string[]
   }
 ): Promise<PromptItem[]> => {
   const ai = getAiClient();
 
   const { taskType, subjectDescription, identity, safetyMode, productImages, count, startCount, totalTarget, previousSettings } = params;
-  
+
   // --- Manifest Generation ---
   const batchManifest: {
+    index: number;
+    absoluteIndex: number;
+    meta: {
+      type: string;
       index: number;
-      absoluteIndex: number;
-      meta: {
-          type: string;
-          index: number;
-          total: number;
-          label: string;
-      }
+      total: number;
+      label: string;
+    }
   }[] = [];
 
   if (taskType === 'product') {
-      for (let i = 0; i < count; i++) {
-        const absoluteIndex = startCount + i;
-        batchManifest.push({
-            index: i,
-            absoluteIndex,
-            meta: { type: "PRODUCT AD", index: absoluteIndex + 1, total: totalTarget, label: "Optimized Ad Composition" }
-        });
-      }
+    for (let i = 0; i < count; i++) {
+      const absoluteIndex = startCount + i;
+      batchManifest.push({
+        index: i,
+        absoluteIndex,
+        meta: { type: "PRODUCT AD", index: absoluteIndex + 1, total: totalTarget, label: "Optimized Ad Composition" }
+      });
+    }
   } else if (taskType === 'generic') {
-      for (let i = 0; i < count; i++) {
-        const absoluteIndex = startCount + i;
-        batchManifest.push({
-            index: i,
-            absoluteIndex,
-            meta: { type: "UGC LIFESTYLE", index: absoluteIndex + 1, total: totalTarget, label: "Authentic Realism" }
-        });
-      }
+    for (let i = 0; i < count; i++) {
+      const absoluteIndex = startCount + i;
+      batchManifest.push({
+        index: i,
+        absoluteIndex,
+        meta: { type: "UGC LIFESTYLE", index: absoluteIndex + 1, total: totalTarget, label: "Authentic Realism" }
+      });
+    }
   } else {
-      // LoRA Mode - Century Protocol
-      const headshotLimit = Math.max(1, Math.floor(totalTarget * 0.35)); 
-      const halfBodyLimit = headshotLimit + Math.max(1, Math.floor(totalTarget * 0.30));
-      const threeQuarterLimit = halfBodyLimit + Math.max(1, Math.floor(totalTarget * 0.20));
-      const MANDATORY_SEQUENCE = ["Left 1/4 View", "Front View", "Right 1/4 View", "Left Profile", "Right Profile", "Look Up", "Look Down"];
+    // LoRA Mode - Century Protocol
+    const headshotLimit = Math.max(1, Math.floor(totalTarget * 0.35));
+    const halfBodyLimit = headshotLimit + Math.max(1, Math.floor(totalTarget * 0.30));
+    const threeQuarterLimit = halfBodyLimit + Math.max(1, Math.floor(totalTarget * 0.20));
+    const MANDATORY_SEQUENCE = ["Left 1/4 View", "Front View", "Right 1/4 View", "Left Profile", "Right Profile", "Look Up", "Look Down"];
 
-      for (let i = 0; i < count; i++) {
-        const absoluteIndex = startCount + i;
-        let type = "", label = "", categoryTotal = 0, categoryIndex = 0;
+    for (let i = 0; i < count; i++) {
+      const absoluteIndex = startCount + i;
+      let type = "", label = "", categoryTotal = 0, categoryIndex = 0;
 
-        if (absoluteIndex < headshotLimit) {
-            type = "HEADSHOT";
-            categoryTotal = headshotLimit;
-            categoryIndex = absoluteIndex + 1;
-            label = absoluteIndex < MANDATORY_SEQUENCE.length ? MANDATORY_SEQUENCE[absoluteIndex] : "Varied Headshot";
-        } else if (absoluteIndex < halfBodyLimit) {
-            type = "HALF BODY";
-            categoryTotal = halfBodyLimit - headshotLimit;
-            categoryIndex = absoluteIndex - headshotLimit + 1;
-            label = "Waist Up / Lifestyle";
-        } else if (absoluteIndex < threeQuarterLimit) {
-            type = "3/4 BODY";
-            categoryTotal = threeQuarterLimit - halfBodyLimit;
-            categoryIndex = absoluteIndex - halfBodyLimit + 1;
-            label = "Knees Up / Environmental";
-        } else {
-            type = "FULL BODY";
-            categoryTotal = totalTarget - threeQuarterLimit;
-            categoryIndex = absoluteIndex - threeQuarterLimit + 1;
-            label = "Head to Toe";
-        }
-
-        batchManifest.push({
-            index: i,
-            absoluteIndex,
-            meta: { type, index: categoryIndex, total: categoryTotal, label }
-        });
+      if (absoluteIndex < headshotLimit) {
+        type = "HEADSHOT";
+        categoryTotal = headshotLimit;
+        categoryIndex = absoluteIndex + 1;
+        label = absoluteIndex < MANDATORY_SEQUENCE.length ? MANDATORY_SEQUENCE[absoluteIndex] : "Varied Headshot";
+      } else if (absoluteIndex < halfBodyLimit) {
+        type = "HALF BODY";
+        categoryTotal = halfBodyLimit - headshotLimit;
+        categoryIndex = absoluteIndex - headshotLimit + 1;
+        label = "Waist Up / Lifestyle";
+      } else if (absoluteIndex < threeQuarterLimit) {
+        type = "3/4 BODY";
+        categoryTotal = threeQuarterLimit - halfBodyLimit;
+        categoryIndex = absoluteIndex - halfBodyLimit + 1;
+        label = "Knees Up / Environmental";
+      } else {
+        type = "FULL BODY";
+        categoryTotal = totalTarget - threeQuarterLimit;
+        categoryIndex = absoluteIndex - threeQuarterLimit + 1;
+        label = "Head to Toe";
       }
+
+      batchManifest.push({
+        index: i,
+        absoluteIndex,
+        meta: { type, index: categoryIndex, total: categoryTotal, label }
+      });
+    }
   }
 
-  const manifestString = batchManifest.map(m => 
+  const manifestString = batchManifest.map(m =>
     `Item ${m.index + 1}: ${m.meta.type} (${m.meta.label}). Metadata: ${m.meta.index}/${m.meta.total}`
   ).join("\n");
 
   // Anti-Repetition
   let repetitionDirective = "";
   if (previousSettings && previousSettings.length > 0) {
-      const recentSettings = previousSettings.slice(-25).join(", ");
-      repetitionDirective = `AVOID SETTINGS: [${recentSettings}]. Invent NEW locations.`;
+    const recentSettings = previousSettings.slice(-25).join(", ");
+    repetitionDirective = `AVOID SETTINGS: [${recentSettings}]. Invent NEW locations.`;
   }
 
   // --- HYBRID GENERATION LOGIC ---
-  
+
   let promptText = "";
   let schema: Schema;
 
   // MODE A: LORA (Vacuum Protocol)
   if (taskType === 'lora') {
-      const BODY_STACK = subjectDescription;
-      const REALISM_STACK = identity.backstory || "subsurface scattering, detailed skin texture, visible pores, faint skin sheen";
-      const ARCHETYPE = identity.profession || "young woman";
+    const BODY_STACK = subjectDescription;
+    const REALISM_STACK = identity.backstory || "subsurface scattering, detailed skin texture, visible pores, faint skin sheen";
+    const ARCHETYPE = `${identity.age_estimate || "25yo"} ${identity.nationality || ""} ${identity.profession || "woman"}`.trim();
 
-      let clothingDirective = "";
-      if (safetyMode === 'nsfw') {
-          clothingDirective = `WARDROBE: ANATOMICAL/FIGURE-FORMING. Use technical terms: "second-skin fit", "anatomical seaming", "compressive". Clothing must trace the body.`;
-      } else {
-          clothingDirective = `WARDROBE: SFW/MODEST. Casual, standard.`;
-      }
+    let clothingDirective = "";
+    if (safetyMode === 'nsfw') {
+      clothingDirective = `WARDROBE: ANATOMICAL/FIGURE-FORMING. Use technical terms: "second-skin fit", "anatomical seaming", "compressive". Clothing must trace the body.`;
+    } else {
+      clothingDirective = `WARDROBE: SFW/MODEST. Casual, standard. MUST BE UNIQUE PER ITEM. VARY COLORS, CUTS, AND STYLES.`;
+    }
 
-      promptText = `
+    promptText = `
         ${VACUUM_COMPILER_DIRECTIVE}
         INPUT DATA:
         ARCHETYPE: ${ARCHETYPE}
@@ -285,6 +288,11 @@ export const generateDatasetPrompts = async (
         REALISM_STACK: ${REALISM_STACK}
         ${clothingDirective}
         ${repetitionDirective}
+        VARIETY PROTOCOL: ENABLED.
+        - NEVER repeat an outfit.
+        - NEVER repeat a setting.
+        - If you used "Black Top" in Item 1, you CANNOT use it in Item 2.
+        
         TASK: Generate exactly ${count} JSON prompts following this MANIFEST:
         ${manifestString}
         OUTPUT TEMPLATE PER ITEM:
@@ -292,49 +300,83 @@ export const generateDatasetPrompts = async (
           "generation_data": {
             "reference_logic": { "primary_ref": "Headshot (0.8)", "secondary_ref": "Full Body (0.8)" },
             "final_prompt_string": "[THE ASSEMBLED STRING]"
-          }
+          },
+          "subject": {
+             "description": "...",
+             "age": "...",
+             "expression": "...",
+             "imperfections": { "skin": "...", "hair": "...", "general": "..." },
+             "clothing": { "top": { "color": "...", "type": "..." }, "bottom": { "color": "...", "type": "..." } }
+          },
+          "background": { "setting": "...", "elements": ["..."] },
+          "photography": { "shot_type": "...", "angle": "...", "camera_style": "..." }
         }
         Return a JSON array.
       `;
 
-      schema = {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            generation_data: {
-                type: Type.OBJECT,
-                properties: {
-                    reference_logic: { type: Type.OBJECT, properties: { primary_ref: { type: Type.STRING }, secondary_ref: { type: Type.STRING } } },
-                    final_prompt_string: { type: Type.STRING }
-                }
-            },
-            tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+    schema = {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          generation_data: {
+            type: Type.OBJECT,
+            properties: {
+              reference_logic: { type: Type.OBJECT, properties: { primary_ref: { type: Type.STRING }, secondary_ref: { type: Type.STRING } } },
+              final_prompt_string: { type: Type.STRING }
+            }
           },
-          required: ["generation_data"]
-        }
-      };
+          subject: {
+            type: Type.OBJECT,
+            properties: {
+              description: { type: Type.STRING },
+              age: { type: Type.STRING },
+              expression: { type: Type.STRING },
+              imperfections: { type: Type.OBJECT, properties: { skin: { type: Type.STRING }, hair: { type: Type.STRING }, general: { type: Type.STRING } } },
+              clothing: { type: Type.OBJECT, properties: { top: { type: Type.OBJECT, properties: { color: { type: Type.STRING }, type: { type: Type.STRING } } }, bottom: { type: Type.OBJECT, properties: { color: { type: Type.STRING }, type: { type: Type.STRING } } } } }
+            }
+          },
+          background: {
+            type: Type.OBJECT,
+            properties: {
+              setting: { type: Type.STRING },
+              elements: { type: Type.ARRAY, items: { type: Type.STRING } }
+            }
+          },
+          photography: {
+            type: Type.OBJECT,
+            properties: {
+              shot_type: { type: Type.STRING },
+              angle: { type: Type.STRING },
+              camera_style: { type: Type.STRING }
+            }
+          },
+          tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["generation_data", "subject", "background", "photography"]
+      }
+    };
 
   } else {
-      // MODE B: RICH JSON (Product / Generic)
-      
-      // Product Logic
-      let productDirective = "";
-      const parts: any[] = [];
-      if (taskType === 'product' && productImages && productImages.length > 0) {
-          productImages.forEach(img => {
-              const { mimeType, data } = parseDataUrl(img);
-              parts.push({ inlineData: { mimeType, data } });
-          });
-          productDirective = `MODE: PRODUCT AD. Integrate product naturally. Invent branding if generic.`;
-      }
+    // MODE B: RICH JSON (Product / Generic)
 
-      let clothingDirective = "";
-      if (safetyMode === 'nsfw') {
-          clothingDirective = `WARDROBE: ANATOMICAL. Fit should be "second-skin", "form-fitting".`;
-      }
+    // Product Logic
+    let productDirective = "";
+    const parts: any[] = [];
+    if (taskType === 'product' && productImages && productImages.length > 0) {
+      productImages.forEach(img => {
+        const { mimeType, data } = parseDataUrl(img);
+        parts.push({ inlineData: { mimeType, data } });
+      });
+      productDirective = `MODE: PRODUCT AD. Integrate product naturally. Invent branding if generic.`;
+    }
 
-      promptText = `
+    let clothingDirective = "";
+    if (safetyMode === 'nsfw') {
+      clothingDirective = `WARDROBE: ANATOMICAL. Fit should be "second-skin", "form-fitting".`;
+    }
+
+    promptText = `
         ${RICH_MEDIA_DIRECTIVE}
         IDENTITY CONTEXT:
         Name: ${identity.name}
@@ -343,6 +385,10 @@ export const generateDatasetPrompts = async (
         
         SUBJECT: SPECIFIC. Use this PHYSICAL PROFILE: "${subjectDescription}"
         ${clothingDirective}
+        VARIETY PROTOCOL: ENABLED.
+        - NEVER repeat an outfit.
+        - NEVER repeat a setting.
+        
         ${productDirective}
         ${repetitionDirective}
         
@@ -352,26 +398,26 @@ export const generateDatasetPrompts = async (
         Return a JSON array.
       `;
 
-      schema = {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            text: { type: Type.STRING, description: "The full JSON prompt object stringified." },
-            tags: { type: Type.ARRAY, items: { type: Type.STRING } }
-          },
-          required: ["text", "tags"]
-        }
-      };
+    schema = {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          text: { type: Type.STRING, description: "The full JSON prompt object stringified." },
+          tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+        },
+        required: ["text", "tags"]
+      }
+    };
   }
 
   const parts: any[] = [];
   // Add product images again if needed for Rich mode
   if (taskType === 'product' && productImages && productImages.length > 0) {
-      productImages.forEach(img => {
-          const { mimeType, data } = parseDataUrl(img);
-          parts.push({ inlineData: { mimeType, data } });
-      });
+    productImages.forEach(img => {
+      const { mimeType, data } = parseDataUrl(img);
+      parts.push({ inlineData: { mimeType, data } });
+    });
   }
   parts.push({ text: promptText });
 
@@ -387,19 +433,19 @@ export const generateDatasetPrompts = async (
     });
 
     const rawData = JSON.parse(response.text || "[]");
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return rawData.map((item: any, idx: number) => {
-        const manifestItem = batchManifest[idx];
-        // For Rich JSON, 'text' is already stringified. For LoRA, we stringify the whole item.
-        const textContent = taskType === 'lora' ? JSON.stringify(item) : item.text;
-        
-        return {
-            id: generateId(),
-            text: textContent, 
-            tags: item.tags || [],
-            generationMeta: manifestItem ? manifestItem.meta : undefined
-        };
+      const manifestItem = batchManifest[idx];
+      // For Rich JSON, 'text' is already stringified. For LoRA, we stringify the whole item.
+      const textContent = taskType === 'lora' ? JSON.stringify(item) : item.text;
+
+      return {
+        id: generateId(),
+        text: textContent,
+        tags: item.tags || [],
+        generationMeta: manifestItem ? manifestItem.meta : undefined
+      };
     });
 
   } catch (error) {
@@ -409,5 +455,5 @@ export const generateDatasetPrompts = async (
 };
 
 export const refineSinglePrompt = async (originalPrompt: string, instruction: string): Promise<string> => {
-    return originalPrompt; 
+  return originalPrompt;
 }
