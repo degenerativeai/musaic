@@ -19,12 +19,17 @@ export interface IdentityContext {
   name: string;
   age_estimate: string;
   profession: string;
-  backstory: string;
+  backstory: string; // Used for Realism Stack in LoRA mode
 }
 
 export interface AnalysisResult {
-  physical_profile: string;
-  identity_inference: IdentityContext;
+  identity_profile: {
+    uid: string;
+    archetype_anchor: string;
+    facial_description: string;
+    body_stack: string;
+    realism_stack: string;
+  }
 }
 
 export interface SavedInfluencer {
@@ -40,14 +45,4 @@ export interface GeneratorState {
   prompts: PromptItem[];
   generatedCount: number;
   error: string | null;
-}
-
-export interface VisionStructOutput {
-  meta: any;
-  global_context: any;
-  color_palette: any;
-  composition: any;
-  objects: any[];
-  text_ocr: any;
-  semantic_relationships: any[];
 }

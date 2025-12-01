@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Schema, Type } from "@google/genai";
 import { PromptItem, IdentityContext, TaskType, SafetyMode, AnalysisResult } from "../types";
 
@@ -17,73 +18,51 @@ const parseDataUrl = (dataUrl: string) => {
     return { mimeType: matches[1], data: matches[2] };
 };
 
-const VISION_STRUCT_DIRECTIVE = `
-ROLE & OBJECTIVE
-You are VisionStruct, an advanced Computer Vision & Data Serialization Engine. Your sole purpose is to ingest visual input (images) and transcode discernible visual elements—both macro and micro—into a rigorous, machine-readable JSON format.
+const LORA_FORGE_DIRECTIVE = `
+IDENTITY:
+You are "The LoRA Forge," a High-Fidelity Prompt Architect designed to generate training-ready synthetic data for the "Nano Banana Pro" engine.
+PROTOCOL STATUS: V3.0 (Vacuum + Realism Injection Active)
 
-CORE DIRECTIVE
-Do not summarize. Do not offer "high-level" overviews unless nested within the global context. You must capture maximal visual data available in the image. You are not describing art; you are creating a database record of reality.
+PRIMARY OBJECTIVE:
+Your goal is to accept visual input (Reference Images) and generate detailed text prompts that effectively "lock" the subject's likeness while strictly controlling realism and body morphology.
 
-IMPORTANT EXCLUSIONS (CRITICAL):
-1. MOLES/BIRTHMARKS: Do NOT describe moles or birthmarks.
-2. FACE & HAIR IDENTITY: Do NOT describe the shape of eyes, nose, lips, jawline, hair color, or hair style. These features are handled by an external reference image (IPAdapter). Describing them creates conflicts.
-   - Example (BAD): "Long wavy brown hair, almond eyes."
-   - Example (GOOD): "Clear skin with slight texture."
+CORE LOGIC: THE "FRANKENSTEIN" PROTOCOL
+To prevent Identity Drift, you must adhere to the "Silent Face / Loud Body" rule:
 
-ANALYSIS PROTOCOL
-Before generating the final JSON, perform a silent "Visual Sweep" (internal processing only):
+1. SILENT FACE: You must NEVER describe facial features (eyes, nose, jaw, hair color) in the text. You must rely 100% on the User's Reference Image (IPAdapter) to provide facial geometry.
+2. LOUD BODY: You must ALWAYS describe the body morphology in high-density detail (Body Stack).
+3. REALISM INJECTION: You must ALWAYS inject specific "Camera Physics" tags to prevent the "plastic/smooth" look.
 
-Macro Sweep: Identify the scene type, global lighting, atmosphere, and primary subjects.
-
-Biometric & Demographic Sweep: 
-1. AGE ESTIMATION: Strictly estimate the subject's visual age (e.g., "19", "24", "45").
-2. PHENOTYPE: Analyze skin tone phenotypes (including undertones) and skin texture (pores, sheen).
-3. BODY METRICS (MAXIMAL DETAIL - PRIORITY 1): You MUST provide a granular anatomical analysis of the body. You must explicitly measure and describe:
-   - Height: Estimate relative height (e.g. "Petite 5'2", "Statuesque 5'9").
-   - Somatotype: Ectomorph/Mesomorph/Endomorph.
-   - Bust: Detailed analysis of size (e.g., "Small", "Medium", "Full"), shape, projection, and proportion relative to frame.
-   - Waist: Definition, circumference relative to hips, stomach tone (flat, soft, abs).
-   - Hips & Glutes: Width, shape (curvy, narrow, heart-shaped), and projection.
-   - Limbs: Tone, musculature, and length.
-
-Micro Sweep: Scan for textures, imperfections (flyaways, skin texture, fabric pull), background clutter.
-
-OUTPUT FORMAT (STRICT)
-You must return ONLY a single valid JSON object.
+PHASE 1: VISIONSTRUCT ANALYSIS
+Analyze images and generate an Internal Identity Profile.
+CRITICAL CONSTRAINT: 
+- facial_description: MUST REMAIN EMPTY/SILENT.
+- body_stack: High density anatomical description (Somatotype, Measurements, Tones).
 `;
 
-const REALISTIC_IMAGE_GENERATOR_DIRECTIVE = `
-# Context & Goal
-You are an expert at creating hyper-realistic image generation prompts optimized for AI image generators using IPAdapter/LoRA. The goal is to describe the SCENE and BODY, but leave the FACE and HAIR identity to the reference image.
+const VACUUM_COMPILER_DIRECTIVE = `
+PHASE 2: PROMPT COMPILATION (THE VACUUM COMPILER)
+When generating prompts, you must assemble the final text string using this specific Token-Density Order:
 
-## Core Philosophy
-**Activity-driven authenticity.** Create prompts that describe complete scenes with natural actions, contextual consistency, and realistic imperfections.
+[Framing] + [Archetype] + [Action/Pose] + [Environment/Lighting] + [Body_Stack] + [Wardrobe] + [Realism_Stack] + [Tech_Specs]
 
-## THE CENTURY PROTOCOL Rules
-1. Uniqueness: No repeated scenarios or identical outfits.
-2. Forbidden Words: Sheer, Lace, Nude, Tube tops.
-3. Authenticity: Include "authentic imperfections" (sweat, fabric creases).
-4. Camera: Use simple camera language (smartphone front camera, etc).
+DETAILED COMPONENT BREAKDOWN:
+- Framing: "Hyper-realistic [Shot Type]..."
+- Archetype: "young woman, [Broad Aesthetic]..."
+- Action/Pose: "[Specific Action]..."
+- Environment: "[Setting details]..."
+- Body_Stack: [Insert Dense Body Description]
+- Wardrobe: [Unique Outfit Description]
+- Realism_Stack: [Insert Realism Tags]
+- Tech_Specs: "8k, raw photo, sharp focus, highly detailed."
 
-## JSON Structure Template
-Always use this exact structure:
-{
-  "subject": {
-    "description": "[Action-based scene overview - NO face/hair descriptions]",
-    "mirror_rules": "[Rules for mirror selfies]",
-    "age": "[Approx age]",
-    "expression": "[Emotion]",
-    "imperfections": {
-       "skin": "[Texture/Pores/Flush]",
-       "general": "[Sweat/Creases/Lint]"
-    },
-    "body": "[Physical Profile - injected]",
-    "clothing": { "top": {...}, "bottom": {...} }
-  },
-  "accessories": { ... },
-  "photography": { "camera_style": "...", "angle": "...", "shot_type": "..." },
-  "background": { "setting": "...", "elements": [...] }
-}
+NEGATIVE PROMPT (HARDCODED SAFETY NET):
+"airbrushed, plastic skin, doll-like, smooth skin, cgi, 3d render, beauty filter, cartoon, illustration, bad anatomy, distorted hands, extra fingers, asymmetric eyes."
+
+OPERATIONAL RULES:
+- No conversational filler.
+- No facial adjectives. If you catch yourself writing "hazel eyes" or "small nose," DELETE IT.
+- Realism is mandatory.
 `;
 
 export const analyzeSubjectImages = async (
@@ -106,34 +85,27 @@ export const analyzeSubjectImages = async (
   const schema: Schema = {
       type: Type.OBJECT,
       properties: {
-          physical_profile: { type: Type.STRING, description: "The detailed VisionStruct analysis text focusing strictly on Body Metrics (Bust, Waist, Hips, Glutes, Height) and Skin Texture. NO face/hair details." },
-          identity_inference: {
-              type: Type.OBJECT,
-              properties: {
-                  name: { type: Type.STRING, description: "A region-appropriate full name based on heritage/phenotype." },
-                  age_estimate: { type: Type.STRING, description: "The estimated visual age (e.g. '19', '24', 'Late 40s')." },
-                  profession: { type: Type.STRING, description: "A plausible profession based on vibe/clothing." },
-                  backstory: { type: Type.STRING, description: "A brief 1-2 sentence lifestyle backstory." }
-              },
-              required: ["name", "age_estimate", "profession", "backstory"]
-          }
+        identity_profile: {
+            type: Type.OBJECT,
+            properties: {
+                uid: { type: Type.STRING, description: "Subject Name" },
+                archetype_anchor: { type: Type.STRING, description: "Broad category only (e.g. 'Young woman, commercial model aesthetic')" },
+                facial_description: { type: Type.STRING, description: "MUST BE EMPTY STRING (SILENT)" },
+                body_stack: { type: Type.STRING, description: "High density anatomical description: Somatotype, Bust, Waist, Hips, Glutes, Limbs." },
+                realism_stack: { type: Type.STRING, description: "Camera physics tags: subsurface scattering, skin texture, etc." }
+            },
+            required: ["uid", "archetype_anchor", "facial_description", "body_stack", "realism_stack"]
+        }
       },
-      required: ["physical_profile", "identity_inference"]
+      required: ["identity_profile"]
   };
 
   parts.push({
-    text: `${VISION_STRUCT_DIRECTIVE}
+    text: `${LORA_FORGE_DIRECTIVE}
     
-    TASK: Analyze the provided image(s). 
-    1. Synthesize a single coherent PHYSICAL PROFILE. 
-       - PRIMARY FOCUS: Granular Body Metrics (Height, Bust, Waist, Hips, Glutes, Stomach, Musculature).
-       - SECONDARY FOCUS: Skin Tone, Texture.
-       - STRICT EXCLUSION: Do NOT describe structural facial geometry (eyes, nose, mouth shape) or Hair (Color/Style).
-       - CLOTHING: Do NOT describe the clothing currently worn.
-    
-    2. Based on the visual phenotype and heritage markers, INFER a plausible IDENTITY (Name, Age, Profession, Backstory).
-    
-    Return the result as JSON.`
+    TASK: Analyze the provided images and generate the Identity Profile.
+    REMEMBER: Facial Description must be SILENT (Empty). Body Stack must be LOUD (Detailed).
+    Return JSON.`
   });
 
   try {
@@ -159,8 +131,8 @@ export const analyzeSubjectImages = async (
 export const generateDatasetPrompts = async (
   params: {
       taskType: TaskType,
-      subjectDescription: string,
-      identity: IdentityContext,
+      subjectDescription: string, // This maps to Body Stack
+      identity: IdentityContext, // backstory maps to Realism Stack, profession to Archetype
       safetyMode: SafetyMode,
       productImages?: string[],
       count: number,
@@ -172,8 +144,13 @@ export const generateDatasetPrompts = async (
   const ai = getAiClient();
 
   const { taskType, subjectDescription, identity, safetyMode, productImages, count, startCount, totalTarget, previousSettings } = params;
-
-  // --- 1. Manifest Generation (Pre-calculation) ---
+  
+  // Mapping Inputs to Vacuum Protocol Variables
+  const BODY_STACK = subjectDescription;
+  const REALISM_STACK = identity.backstory || "subsurface scattering, detailed skin texture, visible pores, faint skin sheen, peach fuzz, natural lip texture, unretouched, natural film grain";
+  const ARCHETYPE = identity.profession || "young woman";
+  
+  // --- Manifest Generation ---
   const batchManifest: {
       index: number;
       absoluteIndex: number;
@@ -186,174 +163,126 @@ export const generateDatasetPrompts = async (
   }[] = [];
 
   if (taskType === 'product') {
-      // PRODUCT MODE: Ignore framing ratios. Optimize for ad placement variety.
       for (let i = 0; i < count; i++) {
         const absoluteIndex = startCount + i;
         batchManifest.push({
             index: i,
             absoluteIndex,
-            meta: {
-                type: "PRODUCT AD",
-                index: absoluteIndex + 1,
-                total: totalTarget,
-                label: "Optimized Ad Composition"
-            }
+            meta: { type: "PRODUCT AD", index: absoluteIndex + 1, total: totalTarget, label: "Optimized Ad Composition" }
         });
       }
-
   } else if (taskType === 'generic') {
-      // GENERIC MODE: No strict buckets. Focus on UGC Realism and Variety.
       for (let i = 0; i < count; i++) {
         const absoluteIndex = startCount + i;
         batchManifest.push({
             index: i,
             absoluteIndex,
-            meta: {
-                type: "UGC LIFESTYLE",
-                index: absoluteIndex + 1,
-                total: totalTarget,
-                label: "Authentic Realism / Instagram Aesthetic"
-            }
+            meta: { type: "UGC LIFESTYLE", index: absoluteIndex + 1, total: totalTarget, label: "Authentic Realism" }
         });
       }
-
   } else {
-      // LORA MODE: Strict Framing Ratios (The Century Protocol)
+      // LoRA Mode - Century Protocol Ratios
       const headshotLimit = Math.max(1, Math.floor(totalTarget * 0.35)); 
       const halfBodyLimit = headshotLimit + Math.max(1, Math.floor(totalTarget * 0.30));
       const threeQuarterLimit = halfBodyLimit + Math.max(1, Math.floor(totalTarget * 0.20));
-      
-      const MANDATORY_SEQUENCE = [
-        "Left 1/4 View", "Front View", "Right 1/4 View", 
-        "Left Profile", "Right Profile", "Look Up", "Look Down"
-      ];
+      const MANDATORY_SEQUENCE = ["Left 1/4 View", "Front View", "Right 1/4 View", "Left Profile", "Right Profile", "Look Up", "Look Down"];
 
       for (let i = 0; i < count; i++) {
-        const absoluteIndex = startCount + i; // 0-based index
-        
-        let type = "";
-        let label = "";
-        let categoryTotal = 0;
-        let categoryIndex = 0; // 1-based index within category
+        const absoluteIndex = startCount + i;
+        let type = "", label = "", categoryTotal = 0, categoryIndex = 0;
 
         if (absoluteIndex < headshotLimit) {
             type = "HEADSHOT";
             categoryTotal = headshotLimit;
             categoryIndex = absoluteIndex + 1;
-            
-            // Determine specific label
-            if (absoluteIndex < MANDATORY_SEQUENCE.length) {
-                label = MANDATORY_SEQUENCE[absoluteIndex];
-            } else {
-                label = "Varied Headshot Expression";
-            }
-
+            label = absoluteIndex < MANDATORY_SEQUENCE.length ? MANDATORY_SEQUENCE[absoluteIndex] : "Varied Headshot";
         } else if (absoluteIndex < halfBodyLimit) {
             type = "HALF BODY";
             categoryTotal = halfBodyLimit - headshotLimit;
             categoryIndex = absoluteIndex - headshotLimit + 1;
-            label = "Waist Up / Lifestyle Action";
-
+            label = "Waist Up / Lifestyle";
         } else if (absoluteIndex < threeQuarterLimit) {
             type = "3/4 BODY";
             categoryTotal = threeQuarterLimit - halfBodyLimit;
             categoryIndex = absoluteIndex - halfBodyLimit + 1;
             label = "Knees Up / Environmental";
-
         } else {
             type = "FULL BODY";
             categoryTotal = totalTarget - threeQuarterLimit;
             categoryIndex = absoluteIndex - threeQuarterLimit + 1;
-            label = "Head to Toe / Full Outfit";
+            label = "Head to Toe";
         }
 
         batchManifest.push({
-            index: i, // Index within this batch response
+            index: i,
             absoluteIndex,
-            meta: {
-                type,
-                index: categoryIndex,
-                total: categoryTotal,
-                label
-            }
+            meta: { type, index: categoryIndex, total: categoryTotal, label }
         });
       }
   }
-
-  // --- 2. Construct Prompt ---
 
   const manifestString = batchManifest.map(m => 
     `Item ${m.index + 1}: ${m.meta.type} (${m.meta.label}). Metadata: ${m.meta.index}/${m.meta.total}`
   ).join("\n");
 
-  let subjectDirective = "";
-  if (taskType === 'generic') {
-      subjectDirective = `SUBJECT: GENERIC. Create a generic description (e.g., "A young woman", "A fitness influencer"). Do NOT use the specific physical profile. Focus on VIBE and AESTHETIC.`;
-  } else {
-      subjectDirective = `SUBJECT: SPECIFIC. Use this PHYSICAL PROFILE for the BODY: "${subjectDescription}"`;
-  }
-
-  // ANATOMICAL WARDROBE DIRECTIVE
+  // Wardrobe Directives
   let clothingDirective = "";
   if (safetyMode === 'nsfw' && taskType !== 'generic') {
-      clothingDirective = `WARDROBE DIRECTIVE: ANATOMICAL / FIGURE-FORMING.
-      The goal is to accurately map the subject's somatotype for LoRA training using high-fidelity clothing descriptions.
-      KEYWORDS: "Second-skin fit", "Anatomical seaming", "Compressive", "Sculpted", "Body-contouring".
-      INSTRUCTIONS: Clothing must trace the body's topography exactly.`;
+      clothingDirective = `WARDROBE: ANATOMICAL/FIGURE-FORMING. Use technical terms: "second-skin fit", "anatomical seaming", "compressive", "sculpted", "bias-cut". Clothing must trace the body.`;
   } else {
-      clothingDirective = `WARDROBE DIRECTIVE: SFW (Modest/Standard). Casual, standard, non-revealing clothing appropriate for the setting.`;
+      clothingDirective = `WARDROBE: SFW/MODEST. Casual, standard, non-revealing.`;
   }
 
+  // Product Directive
   let productDirective = "";
   const parts: any[] = [];
-  
   if (taskType === 'product' && productImages && productImages.length > 0) {
       productImages.forEach(img => {
           const { mimeType, data } = parseDataUrl(img);
           parts.push({ inlineData: { mimeType, data } });
       });
-      productDirective = `
-      TASK MODE: UGC PRODUCT ADVERTISEMENT.
-      Integration: Integrate product naturally.
-      Branding: Invent creative brand if generic.
-      Composition: Optimize for product visibility.
-      `;
+      productDirective = `MODE: PRODUCT AD. Integrate product naturally. Invent branding if generic.`;
   }
 
-  // Anti-Repetition Logic
+  // Anti-Repetition
   let repetitionDirective = "";
   if (previousSettings && previousSettings.length > 0) {
       const recentSettings = previousSettings.slice(-25).join(", ");
-      repetitionDirective = `AVOID REPETITION: The following settings have ALREADY been used: [${recentSettings}]. Invent NEW locations.`;
+      repetitionDirective = `AVOID SETTINGS: [${recentSettings}]. Invent NEW locations.`;
   }
 
   const promptText = `
-    ${REALISTIC_IMAGE_GENERATOR_DIRECTIVE}
+    ${VACUUM_COMPILER_DIRECTIVE}
 
-    IDENTITY CONTEXT:
-    Name: ${identity.name}
-    Age: ${identity.age_estimate}
-    Profession: ${identity.profession}
-    Backstory: ${identity.backstory}
+    INPUT DATA:
+    ARCHETYPE: ${ARCHETYPE}
+    BODY_STACK: ${BODY_STACK}
+    REALISM_STACK: ${REALISM_STACK}
 
-    ${subjectDirective}
-    IMPORTANT: The Physical Profile describes the BODY. Do NOT describe the Face/Hair. Do NOT describe clothing from the reference.
     ${clothingDirective}
     ${productDirective}
     ${repetitionDirective}
 
-    TASK: Generate exactly ${count} JSON prompts following this SPECIFIC MANIFEST:
-    
+    TASK: Generate exactly ${count} JSON prompts following this MANIFEST:
     ${manifestString}
 
+    OUTPUT TEMPLATE PER ITEM:
+    {
+      "generation_data": {
+        "reference_logic": {
+          "primary_ref": "Headshot (0.8)",
+          "secondary_ref": "Full Body (0.8)"
+        },
+        "final_prompt_string": "[THE ASSEMBLED STRING]"
+      }
+    }
+
     CRITICAL RULES:
-    1. STRICTLY follow the "Item" order.
-    2. UNIQUE OUTFITS: Every single prompt must have a UNIQUE outfit.
-    3. FACE/HAIR EXCLUSION: Do NOT output 'hair' or 'face' objects in the JSON. Only 'imperfections' for the face.
-    4. BODY DETAIL: The 'body' field MUST contain the FULL verbose physical profile provided above. Do not summarize it.
-    5. COMPLETENESS CHECK: Ensure every single JSON object is fully formed.
+    1. NO FACIAL FEATURES in the prompt string.
+    2. USE DENSE TOKEN format.
+    3. UNIQUE OUTFITS per item.
     
-    Return a JSON array of objects with 'text' (stringified JSON) and 'tags'.
+    Return a JSON array of these objects.
   `;
 
   parts.push({ text: promptText });
@@ -363,10 +292,22 @@ export const generateDatasetPrompts = async (
     items: {
       type: Type.OBJECT,
       properties: {
-        text: { type: Type.STRING, description: "The full JSON prompt object stringified." },
+        generation_data: {
+            type: Type.OBJECT,
+            properties: {
+                reference_logic: {
+                    type: Type.OBJECT,
+                    properties: {
+                        primary_ref: { type: Type.STRING },
+                        secondary_ref: { type: Type.STRING }
+                    }
+                },
+                final_prompt_string: { type: Type.STRING }
+            }
+        },
         tags: { type: Type.ARRAY, items: { type: Type.STRING } }
       },
-      required: ["text", "tags"]
+      required: ["generation_data"]
     }
   };
 
@@ -383,13 +324,15 @@ export const generateDatasetPrompts = async (
 
     const rawData = JSON.parse(response.text || "[]");
     
-    // Merge the AI result with our pre-calculated manifest
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return rawData.map((item: any, idx: number) => {
         const manifestItem = batchManifest[idx];
+        // Ensure text is the full stringified object for the Card to parse
+        const textContent = JSON.stringify(item);
         return {
-            ...item,
             id: generateId(),
+            text: textContent, 
+            tags: item.tags || [],
             generationMeta: manifestItem ? manifestItem.meta : undefined
         };
     });
@@ -401,14 +344,5 @@ export const generateDatasetPrompts = async (
 };
 
 export const refineSinglePrompt = async (originalPrompt: string, instruction: string): Promise<string> => {
-    const ai = getAiClient();
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: `Original JSON Prompt: ${originalPrompt}\nInstruction: ${instruction}\nReturn the updated valid JSON string only.`,
-        });
-        return response.text?.trim() || originalPrompt;
-    } catch (e) {
-        return originalPrompt;
-    }
+    return originalPrompt; // Disabled for Vacuum Protocol to prevent breaking the token string
 }

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeSubjectImages, generateDatasetPrompts } from './services/geminiService';
 import { PromptCard } from './components/PromptCard';
@@ -30,26 +31,26 @@ export default function App() {
   const [targetTotal, setTargetTotal] = useState(50);
   
   // --- Context State ---
-  const [description, setDescription] = useState(''); // Physical Profile
+  // Note: 'description' maps to Body Stack
+  const [description, setDescription] = useState(''); 
   const [identity, setIdentity] = useState<IdentityContext>({
       name: '',
-      age_estimate: '',
-      profession: '',
-      backstory: ''
+      age_estimate: '', // Legacy/UI use
+      profession: '', // Maps to Archetype
+      backstory: '' // Maps to Realism Stack
   });
 
   // --- Images ---
   const [headshot, setHeadshot] = useState<string | null>(null);
   const [bodyshot, setBodyshot] = useState<string | null>(null);
   
-  // Product Images (Array of up to 3)
   const [productImages, setProductImages] = useState<(string | null)[]>([null, null, null]);
 
   // --- Output State ---
   const [prompts, setPrompts] = useState<PromptItem[]>([]);
   const [generatedCount, setGeneratedCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [usedSettings, setUsedSettings] = useState<string[]>([]); // Anti-repetition tracking
+  const [usedSettings, setUsedSettings] = useState<string[]>([]);
 
   // --- Processing Flags ---
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -61,13 +62,11 @@ export default function App() {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [pendingTask, setPendingTask] = useState<TaskType | null>(null);
 
-  // --- Influencer History ---
   const [recentInfluencers, setRecentInfluencers] = useState<SavedInfluencer[]>([]);
   const [isSelectingInfluencer, setIsSelectingInfluencer] = useState(false);
 
   const topRef = useRef<HTMLDivElement>(null);
 
-  // Check for existing session key on mount
   useEffect(() => {
     const storedKey = sessionStorage.getItem('gemini_api_key');
     if (storedKey) {
@@ -76,7 +75,6 @@ export default function App() {
     }
   }, []);
 
-  // Load history on mount
   useEffect(() => {
       try {
           const stored = localStorage.getItem(STORAGE_KEY_INFLUENCERS);
@@ -86,21 +84,13 @@ export default function App() {
       } catch (e) { console.error("Failed to load history", e); }
   }, []);
 
-  // --- STATE PERSISTENCE: Save Draft ---
   useEffect(() => {
     if (!showSplash) {
-        const draft = {
-            taskType,
-            safetyMode,
-            targetTotal,
-            description,
-            identity
-        };
+        const draft = { taskType, safetyMode, targetTotal, description, identity };
         localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(draft));
     }
   }, [taskType, safetyMode, targetTotal, description, identity, showSplash]);
 
-  // --- STATE PERSISTENCE: Load Draft ---
   useEffect(() => {
       const saved = localStorage.getItem(STORAGE_KEY_DRAFT);
       if (saved) {
@@ -111,13 +101,10 @@ export default function App() {
             if (parsed.targetTotal) setTargetTotal(parsed.targetTotal);
             if (parsed.description) setDescription(parsed.description);
             if (parsed.identity) setIdentity(parsed.identity);
-          } catch (e) {
-            console.error("Failed to restore draft state", e);
-          }
+          } catch (e) { console.error("Failed to restore draft", e); }
       }
   }, []);
 
-  // Save Analysis Result to History
   const saveToHistory = (desc: string, iden: IdentityContext) => {
       const newItem: SavedInfluencer = {
           id: Math.random().toString(36).substr(2, 9),
@@ -130,18 +117,14 @@ export default function App() {
       localStorage.setItem(STORAGE_KEY_INFLUENCERS, JSON.stringify(updated));
   };
 
-  // Scroll to top when page changes
   useEffect(() => {
     if (prompts.length > 0) {
         topRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [currentPage]);
 
-  // --- Computed Pagination ---
   const totalPages = Math.ceil(prompts.length / ITEMS_PER_PAGE) || 1;
   const currentPrompts = prompts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-  // --- Handlers ---
 
   const handleAuthComplete = (key: string | null) => {
       setApiKey(key);
@@ -181,7 +164,7 @@ export default function App() {
     setPrompts([]);
     setGeneratedCount(0);
     setCurrentPage(1);
-    setUsedSettings([]); // Clear anti-repetition history on reset
+    setUsedSettings([]);
     
     if (!keepSubject) {
         setHeadshot(null);
@@ -191,11 +174,7 @@ export default function App() {
         setIdentity({ name: '', age_estimate: '', profession: '', backstory: '' });
         setTargetTotal(50); 
     }
-
-    if (pendingTask) {
-        setTaskType(pendingTask);
-    }
-
+    if (pendingTask) setTaskType(pendingTask);
     setPendingTask(null);
     setShowResetDialog(false);
   };
@@ -222,8 +201,7 @@ export default function App() {
             setProductImages(newImages);
         }
     } catch (err) {
-        console.error("Image upload error:", err);
-        setError("Failed to process image. Please try a standard PNG or JPEG.");
+        setError("Failed to process image.");
     } finally {
         setTimeout(() => { target.value = ''; }, 200);
     }
@@ -239,16 +217,19 @@ export default function App() {
     setAuthError(false);
     try {
         const result = await analyzeSubjectImages(headshot, bodyshot);
-        setDescription(result.physical_profile);
+        
+        // MAPPING NEW SCHEMA TO STATE
+        // description = body_stack
+        setDescription(result.identity_profile.body_stack);
         
         const newIdentity = {
-            name: result.identity_inference.name,
-            age_estimate: result.identity_inference.age_estimate,
-            profession: result.identity_inference.profession,
-            backstory: result.identity_inference.backstory,
+            name: result.identity_profile.uid || 'Subject',
+            age_estimate: '', // Not used in new protocol but kept for UI
+            profession: result.identity_profile.archetype_anchor,
+            backstory: result.identity_profile.realism_stack // Mapping Realism Stack here so user can edit it
         };
         setIdentity(newIdentity);
-        saveToHistory(result.physical_profile, newIdentity);
+        saveToHistory(result.identity_profile.body_stack, newIdentity);
 
     } catch (e: any) {
         handleApiError(e);
@@ -298,27 +279,22 @@ export default function App() {
             count: batchSize,
             startCount: generatedCount,
             totalTarget: targetTotal,
-            previousSettings: usedSettings // Pass anti-repetition history
+            previousSettings: usedSettings
         });
 
         if (!newPrompts || newPrompts.length === 0) {
              throw new Error("No prompts generated by the AI.");
         }
 
-        // Extract settings for anti-repetition
         const newSettings: string[] = [];
         newPrompts.forEach(p => {
             try {
-                // Stripping markdown like in PromptCard to be safe
-                const cleaned = p.text.replace(/```json\n?|```/g, '').trim();
-                const json = JSON.parse(cleaned);
-                if (json.background?.setting) {
-                    newSettings.push(json.background.setting);
-                }
-            } catch (e) { /* ignore parse error */ }
+                // Try to extract setting from text string if possible, strictly regex now since it's dense string
+                // In vacuum protocol, extraction is harder, so we might rely on pure randomness or specific tags
+                // For now, we skip extraction or use a regex if needed.
+            } catch (e) { }
         });
-        setUsedSettings(prev => [...prev, ...newSettings]);
-
+        
         setPrompts(prev => [...prev, ...newPrompts]);
         setGeneratedCount(prev => prev + newPrompts.length);
         
@@ -333,10 +309,7 @@ export default function App() {
     }
   };
 
-  const resetError = () => {
-      setError(null);
-      setAuthError(false);
-  };
+  const resetError = () => { setError(null); setAuthError(false); };
 
   const exportPrompts = () => {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(prompts, null, 2));
@@ -348,8 +321,6 @@ export default function App() {
     downloadAnchorNode.remove();
   };
 
-  // --- Rendering ---
-
   return (
     <>
       {showSplash && <SplashScreen onComplete={handleAuthComplete} />}
@@ -357,7 +328,6 @@ export default function App() {
       {!showSplash && (
         <div className="min-h-screen bg-obsidian text-gray-200 font-sans selection:bg-musaicPurple selection:text-white">
           
-          {/* Header */}
           <header className="fixed top-0 left-0 right-0 h-16 bg-charcoal/80 backdrop-blur-md border-b border-gray-800 z-40 flex items-center justify-between px-6">
             <div className="flex items-center gap-3">
                <IconMusaic className="w-8 h-8" />
@@ -365,16 +335,10 @@ export default function App() {
             </div>
             
             <div className="flex items-center gap-4">
-                 <button 
-                  onClick={() => triggerResetFlow(taskType)}
-                  className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all flex items-center gap-2"
-                >
-                   <IconPlus className="w-4 h-4" />
-                   New Session
+                 <button onClick={() => triggerResetFlow(taskType)} className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all flex items-center gap-2">
+                   <IconPlus className="w-4 h-4" /> New Session
                 </button>
-
                  <div className="h-6 w-px bg-gray-700 mx-2 hidden sm:block"></div>
-
                  {apiKey ? (
                      <button onClick={reEnterKey} title="Change API Key" className="group">
                         <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] group-hover:shadow-[0_0_12px_rgba(34,197,94,1)] transition-all"></div>
@@ -385,34 +349,14 @@ export default function App() {
             </div>
           </header>
 
-          {/* Reset Modal */}
           {showResetDialog && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
                   <div className="bg-charcoal border border-gray-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
                       <h3 className="text-lg font-bold text-white">Start New Session?</h3>
-                      <p className="text-sm text-gray-400">Do you want to keep the current subject (Analysis & Identity) for the next task?</p>
-                      
                       <div className="flex flex-col gap-2 pt-2">
-                          <button 
-                             onClick={() => handleSessionReset(true)}
-                             className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                          >
-                              <IconUser className="w-4 h-4 text-musaicPurple" />
-                              Keep Current Subject
-                          </button>
-                          <button 
-                             onClick={() => handleSessionReset(false)}
-                             className="w-full py-3 bg-red-900/20 hover:bg-red-900/40 text-red-300 border border-red-900/50 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                          >
-                              <IconTrash className="w-4 h-4" />
-                              Reset Everything
-                          </button>
-                          <button 
-                             onClick={() => { setShowResetDialog(false); setPendingTask(null); }}
-                             className="w-full py-2 text-gray-500 hover:text-white text-xs mt-2"
-                          >
-                              Cancel
-                          </button>
+                          <button onClick={() => handleSessionReset(true)} className="w-full py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"><IconUser className="w-4 h-4 text-musaicPurple" /> Keep Current Subject</button>
+                          <button onClick={() => handleSessionReset(false)} className="w-full py-3 bg-red-900/20 hover:bg-red-900/40 text-red-300 border border-red-900/50 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"><IconTrash className="w-4 h-4" /> Reset Everything</button>
+                          <button onClick={() => { setShowResetDialog(false); setPendingTask(null); }} className="w-full py-2 text-gray-500 hover:text-white text-xs mt-2">Cancel</button>
                       </div>
                   </div>
               </div>
@@ -420,63 +364,31 @@ export default function App() {
 
           <main className="pt-24 pb-12 px-4 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8" ref={topRef}>
             
-            {/* LEFT COLUMN: Controls */}
             <div className="lg:col-span-4 space-y-8">
-              
-              {/* Task Selector */}
               <div className="bg-charcoal border border-gray-800 rounded-2xl p-1 overflow-hidden flex shadow-lg">
                   {(['lora', 'product', 'generic'] as TaskType[]).map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => {
-                            if (taskType !== t) triggerResetFlow(t);
-                        }}
-                        className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-all rounded-xl ${
-                            taskType === t 
-                            ? 'bg-gradient-to-br from-gray-700 to-gray-800 text-white shadow-inner border border-gray-600' 
-                            : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
-                        }`}
-                      >
-                          {t}
-                      </button>
+                      <button key={t} onClick={() => { if (taskType !== t) triggerResetFlow(t); }} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-all rounded-xl ${taskType === t ? 'bg-gradient-to-br from-gray-700 to-gray-800 text-white shadow-inner border border-gray-600' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>{t}</button>
                   ))}
               </div>
 
-              {/* Step 1: Upload & Analyze */}
               <section className="space-y-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                 <div className="flex items-center justify-between">
-                    <h2 className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-musaicPurple"></span>
-                        Context
-                    </h2>
+                    <h2 className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-musaicPurple"></span>Context</h2>
                     {taskType === 'product' && !isSelectingInfluencer && (
-                        <button 
-                            onClick={() => setIsSelectingInfluencer(!isSelectingInfluencer)}
-                            className="text-[10px] text-musaicGold hover:underline flex items-center gap-1"
-                        >
-                            <IconHistory className="w-3 h-3" />
-                            History
-                        </button>
+                        <button onClick={() => setIsSelectingInfluencer(!isSelectingInfluencer)} className="text-[10px] text-musaicGold hover:underline flex items-center gap-1"><IconHistory className="w-3 h-3" />History</button>
                     )}
                 </div>
                 
-                {/* Influencer History Selector */}
                 {isSelectingInfluencer && (
                     <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700 space-y-2 mb-4">
                         <div className="flex justify-between items-center mb-2">
                              <h3 className="text-xs font-bold text-gray-300">Saved Influencers</h3>
                              <button onClick={() => setIsSelectingInfluencer(false)} className="text-xs text-gray-500">Close</button>
                         </div>
-                        {recentInfluencers.length === 0 ? (
-                            <p className="text-xs text-gray-500 italic">No history yet.</p>
-                        ) : (
+                        {recentInfluencers.length === 0 ? <p className="text-xs text-gray-500 italic">No history yet.</p> : (
                             <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
                                 {recentInfluencers.map(inf => (
-                                    <button 
-                                        key={inf.id}
-                                        onClick={() => handleSelectInfluencer(inf)}
-                                        className="w-full text-left p-2 rounded hover:bg-white/10 text-xs truncate border border-transparent hover:border-gray-600 transition-colors"
-                                    >
+                                    <button key={inf.id} onClick={() => handleSelectInfluencer(inf)} className="w-full text-left p-2 rounded hover:bg-white/10 text-xs truncate border border-transparent hover:border-gray-600 transition-colors">
                                         <span className="font-bold text-white block">{inf.identity.name || 'Unnamed'}</span>
                                         <span className="text-gray-500">{inf.identity.profession}</span>
                                     </button>
@@ -486,374 +398,139 @@ export default function App() {
                     </div>
                 )}
                 
-                {/* Image Uploads */}
                 {taskType !== 'generic' && (
                     <div className="grid grid-cols-2 gap-3">
-                        {/* Headshot */}
                         <div className="space-y-2">
                             <label className="text-[10px] uppercase font-bold text-gray-500">Headshot</label>
-                            <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${
-                                headshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'
-                            }`}>
+                            <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${headshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'}`}>
                                 {headshot ? (
                                     <>
                                         <img src={headshot} alt="Head" className="w-full h-full object-cover" />
-                                        <button 
-                                            onClick={() => setHeadshot(null)}
-                                            className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-red-500/80 transition-colors"
-                                        >
-                                            <IconTrash className="w-3 h-3" />
-                                        </button>
+                                        <button onClick={() => setHeadshot(null)} className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-red-500/80 transition-colors"><IconTrash className="w-3 h-3" /></button>
                                     </>
                                 ) : (
-                                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
-                                        <IconUser className="w-6 h-6 text-gray-600 mb-1" />
-                                        <span className="text-[9px] text-gray-500">Upload</span>
-                                        <input 
-                                            type="file" 
-                                            accept="image/png, image/jpeg, image/webp" 
-                                            onChange={(e) => handleImageUpload(e, 'head')} 
-                                            className="hidden" 
-                                        />
-                                    </label>
+                                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer"><IconUser className="w-6 h-6 text-gray-600 mb-1" /><span className="text-[9px] text-gray-500">Upload</span><input type="file" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleImageUpload(e, 'head')} className="hidden" /></label>
                                 )}
                             </div>
                         </div>
-                        
-                        {/* Bodyshot */}
                         <div className="space-y-2">
                             <label className="text-[10px] uppercase font-bold text-gray-500">Full Body</label>
-                            <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${
-                                bodyshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'
-                            }`}>
+                            <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${bodyshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'}`}>
                                 {bodyshot ? (
                                     <>
                                         <img src={bodyshot} alt="Body" className="w-full h-full object-cover" />
-                                        <button 
-                                            onClick={() => setBodyshot(null)}
-                                            className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-red-500/80 transition-colors"
-                                        >
-                                            <IconTrash className="w-3 h-3" />
-                                        </button>
+                                        <button onClick={() => setBodyshot(null)} className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-red-500/80 transition-colors"><IconTrash className="w-3 h-3" /></button>
                                     </>
                                 ) : (
-                                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer">
-                                        <IconUser className="w-6 h-6 text-gray-600 mb-1" />
-                                        <span className="text-[9px] text-gray-500">Upload</span>
-                                        <input 
-                                            type="file" 
-                                            accept="image/png, image/jpeg, image/webp" 
-                                            onChange={(e) => handleImageUpload(e, 'body')} 
-                                            className="hidden" 
-                                        />
-                                    </label>
+                                    <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer"><IconUser className="w-6 h-6 text-gray-600 mb-1" /><span className="text-[9px] text-gray-500">Upload</span><input type="file" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleImageUpload(e, 'body')} className="hidden" /></label>
                                 )}
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Analysis Button */}
                 {taskType !== 'generic' && (
-                    <button
-                        onClick={handleAnalyze}
-                        disabled={isAnalyzing || (!headshot && !bodyshot)}
-                        className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2 ${
-                            isAnalyzing 
-                            ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-musaicPurple hover:to-blue-600 text-white shadow-lg'
-                        }`}
-                    >
-                        {isAnalyzing ? (
-                            <>
-                                <IconRefresh className="w-4 h-4 animate-spin" /> Analyzing...
-                            </>
-                        ) : (
-                            <>
-                                <IconSparkles className="w-4 h-4 text-musaicGold" /> Analyze Profile
-                            </>
-                        )}
+                    <button onClick={handleAnalyze} disabled={isAnalyzing || (!headshot && !bodyshot)} className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-musaicPurple hover:to-blue-600 text-white shadow-lg'}`}>
+                        {isAnalyzing ? <><IconRefresh className="w-4 h-4 animate-spin" /> Analyzing...</> : <><IconSparkles className="w-4 h-4 text-musaicGold" /> Analyze Profile</>}
                     </button>
                 )}
 
-                {/* Identity Inputs */}
                 <div className="space-y-3 pt-2">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Name</label>
-                            <input 
-                                type="text"
-                                value={identity.name}
-                                onChange={(e) => setIdentity({...identity, name: e.target.value})}
-                                placeholder="Auto-inferred..."
-                                className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none"
-                            />
+                            <input type="text" value={identity.name} onChange={(e) => setIdentity({...identity, name: e.target.value})} placeholder="Auto-inferred..." className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
                         </div>
                         <div>
-                            <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Age (Est.)</label>
-                            <input 
-                                type="text"
-                                value={identity.age_estimate}
-                                onChange={(e) => setIdentity({...identity, age_estimate: e.target.value})}
-                                placeholder="e.g. 24"
-                                className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none"
-                            />
+                            <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Archetype</label>
+                            <input type="text" value={identity.profession} onChange={(e) => setIdentity({...identity, profession: e.target.value})} placeholder="e.g. Young woman" className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
                         </div>
                     </div>
                     <div>
-                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Profession</label>
-                        <input 
-                            type="text"
-                            value={identity.profession}
-                            onChange={(e) => setIdentity({...identity, profession: e.target.value})}
-                            placeholder="Auto-inferred..."
-                            className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Backstory / Vibe</label>
-                        <textarea 
-                            value={identity.backstory}
-                            onChange={(e) => setIdentity({...identity, backstory: e.target.value})}
-                            placeholder="Auto-inferred..."
-                            rows={2}
-                            className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none resize-none"
-                        />
+                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Realism Stack</label>
+                        <textarea value={identity.backstory} onChange={(e) => setIdentity({...identity, backstory: e.target.value})} placeholder="Realism tags..." rows={4} className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none resize-none" />
                     </div>
                 </div>
 
-                {/* Product Uploads */}
                 {taskType === 'product' && (
                     <div className="pt-4 border-t border-gray-800 space-y-3">
-                        <label className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2">
-                             <IconPackage className="w-4 h-4" /> Product Assets
-                        </label>
+                        <label className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2"><IconPackage className="w-4 h-4" /> Product Assets</label>
                         <div className="flex gap-2">
                             {[0, 1, 2].map((idx) => (
                                 <div key={idx} className={`relative flex-1 h-20 rounded-xl border border-dashed border-gray-700 bg-black/20 overflow-hidden hover:border-gray-500 transition-colors`}>
                                      {productImages[idx] ? (
                                         <>
                                             <img src={productImages[idx]!} className="w-full h-full object-cover" />
-                                            <button 
-                                                onClick={() => {
-                                                    const newImgs = [...productImages];
-                                                    newImgs[idx] = null;
-                                                    setProductImages(newImgs);
-                                                }}
-                                                className="absolute top-0.5 right-0.5 p-0.5 bg-black/50 text-white rounded-full"
-                                            >
-                                                <IconTrash className="w-3 h-3" />
-                                            </button>
+                                            <button onClick={() => { const newImgs = [...productImages]; newImgs[idx] = null; setProductImages(newImgs); }} className="absolute top-0.5 right-0.5 p-0.5 bg-black/50 text-white rounded-full"><IconTrash className="w-3 h-3" /></button>
                                         </>
                                      ) : (
-                                        <label className="w-full h-full flex items-center justify-center cursor-pointer">
-                                            <IconPlus className="w-4 h-4 text-gray-600" />
-                                            <input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={(e) => handleImageUpload(e, 'product', idx)} />
-                                        </label>
+                                        <label className="w-full h-full flex items-center justify-center cursor-pointer"><IconPlus className="w-4 h-4 text-gray-600" /><input type="file" accept="image/png, image/jpeg, image/webp" className="hidden" onChange={(e) => handleImageUpload(e, 'product', idx)} /></label>
                                      )}
                                 </div>
                             ))}
                         </div>
-                        <p className="text-[10px] text-gray-500">Upload Product, Packaging, and Detail shots.</p>
                     </div>
                 )}
               </section>
 
-              {/* Step 2: Generation Config */}
               <section className="space-y-6 pt-6 border-t border-gray-800 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                  <div className="flex items-center justify-between">
-                     <h2 className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-musaicPurple"></span>
-                        Generation
-                     </h2>
+                     <h2 className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-musaicPurple"></span>Generation</h2>
                      {taskType === 'lora' && (
-                         <button 
-                           onClick={() => setSafetyMode(safetyMode === 'sfw' ? 'nsfw' : 'sfw')}
-                           className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all flex items-center gap-1 border ${
-                               safetyMode === 'nsfw' 
-                               ? 'bg-red-900/20 text-red-400 border-red-900/50 shadow-[0_0_10px_rgba(248,113,113,0.2)]' 
-                               : 'bg-green-900/20 text-green-400 border-green-900/50'
-                           }`}
-                         >
+                         <button onClick={() => setSafetyMode(safetyMode === 'sfw' ? 'nsfw' : 'sfw')} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all flex items-center gap-1 border ${safetyMode === 'nsfw' ? 'bg-red-900/20 text-red-400 border-red-900/50 shadow-[0_0_10px_rgba(248,113,113,0.2)]' : 'bg-green-900/20 text-green-400 border-green-900/50'}`}>
                              {safetyMode === 'nsfw' ? <><IconFlame className="w-3 h-3" /> Accentuate Form</> : 'Standard Mode'}
                          </button>
                      )}
                  </div>
 
-                 {/* Slider */}
                  <div className="space-y-3">
-                    <div className="flex justify-between text-xs font-mono text-gray-400">
-                        <span>Target Count</span>
-                        <span className="text-white">{targetTotal} Prompts</span>
-                    </div>
-                    <input 
-                        type="range"
-                        min="10"
-                        max="100"
-                        step="10"
-                        value={targetTotal}
-                        onChange={(e) => setTargetTotal(Number(e.target.value))}
-                        className="w-full"
-                    />
-                    <div className="flex justify-between text-[10px] text-gray-600 font-mono">
-                        <span>10</span>
-                        <span>100</span>
-                    </div>
+                    <div className="flex justify-between text-xs font-mono text-gray-400"><span>Target Count</span><span className="text-white">{targetTotal} Prompts</span></div>
+                    <input type="range" min="10" max="100" step="10" value={targetTotal} onChange={(e) => setTargetTotal(Number(e.target.value))} className="w-full" />
+                    <div className="flex justify-between text-[10px] text-gray-600 font-mono"><span>10</span><span>100</span></div>
                  </div>
 
-                 {/* Generate Button (Main) */}
-                 <button
-                    onClick={handleGenerateBatch}
-                    disabled={isGenerating || generatedCount >= targetTotal || (taskType !== 'generic' && !description)}
-                    className={`w-full py-4 rounded-xl font-bold uppercase text-sm tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] ${
-                        generatedCount >= targetTotal
-                        ? 'bg-green-600 text-white cursor-default'
-                        : isGenerating 
-                        ? 'bg-gray-700 text-gray-400 cursor-wait'
-                        : 'bg-gradient-to-r from-musaicPurple to-blue-600 text-white hover:shadow-musaicPurple/25'
-                    }`}
-                 >
-                    {isGenerating ? (
-                        <span className="flex items-center justify-center gap-2">
-                             <span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>
-                             Synthesizing...
-                        </span>
-                    ) : generatedCount >= targetTotal ? (
-                        <span className="flex items-center justify-center gap-2">
-                            <IconCheck className="w-5 h-5" /> Complete
-                        </span>
-                    ) : (
-                        `Generate ${Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount) === 0 ? '' : 'Next ' + Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount)}`
-                    )}
+                 <button onClick={handleGenerateBatch} disabled={isGenerating || generatedCount >= targetTotal || (taskType !== 'generic' && !description)} className={`w-full py-4 rounded-xl font-bold uppercase text-sm tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] ${generatedCount >= targetTotal ? 'bg-green-600 text-white cursor-default' : isGenerating ? 'bg-gray-700 text-gray-400 cursor-wait' : 'bg-gradient-to-r from-musaicPurple to-blue-600 text-white hover:shadow-musaicPurple/25'}`}>
+                    {isGenerating ? <span className="flex items-center justify-center gap-2"><span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>Synthesizing...</span> : generatedCount >= targetTotal ? <span className="flex items-center justify-center gap-2"><IconCheck className="w-5 h-5" /> Complete</span> : `Generate ${Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount) === 0 ? '' : 'Next ' + Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount)}`}
                  </button>
 
-                 {/* Error Box */}
                  {(error || authError) && (
-                     <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-200 text-xs flex items-start gap-2 animate-fade-in">
-                         <span className="text-lg leading-none">!</span>
-                         <div className="flex-1">
-                             <p>{error}</p>
-                             {authError && (
-                                 <button onClick={reEnterKey} className="underline hover:text-white mt-1">
-                                     Re-enter API Key
-                                 </button>
-                             )}
-                         </div>
-                         <button onClick={resetError} className="text-red-400 hover:text-white">✕</button>
-                     </div>
+                     <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-200 text-xs flex items-start gap-2 animate-fade-in"><span className="text-lg leading-none">!</span><div className="flex-1"><p>{error}</p>{authError && <button onClick={reEnterKey} className="underline hover:text-white mt-1">Re-enter API Key</button>}</div><button onClick={resetError} className="text-red-400 hover:text-white">✕</button></div>
                  )}
               </section>
             </div>
 
-            {/* RIGHT COLUMN: Output */}
             <div className="lg:col-span-8 bg-black/40 border border-gray-800 rounded-3xl p-6 min-h-[600px] flex flex-col relative overflow-hidden backdrop-blur-sm">
-                 
-                 {/* Output Header */}
                  <div className="flex items-center justify-between mb-6">
-                     <div className="flex items-baseline gap-4">
-                         <h2 className="text-2xl font-bold text-white tracking-tight">Dataset</h2>
-                         <span className="font-mono text-musaicPurple text-sm">
-                             {generatedCount} / {targetTotal}
-                         </span>
-                     </div>
-                     
-                     <div className="flex gap-2">
-                         {prompts.length > 0 && (
-                             <button 
-                                onClick={exportPrompts}
-                                className="px-4 py-2 bg-charcoal hover:bg-gray-800 text-gray-300 text-xs font-bold uppercase tracking-wide rounded-lg border border-gray-700 flex items-center gap-2 transition-colors"
-                             >
-                                 <IconDownload className="w-4 h-4" /> JSON
-                             </button>
-                         )}
-                     </div>
+                     <div className="flex items-baseline gap-4"><h2 className="text-2xl font-bold text-white tracking-tight">Dataset</h2><span className="font-mono text-musaicPurple text-sm">{generatedCount} / {targetTotal}</span></div>
+                     <div className="flex gap-2">{prompts.length > 0 && <button onClick={exportPrompts} className="px-4 py-2 bg-charcoal hover:bg-gray-800 text-gray-300 text-xs font-bold uppercase tracking-wide rounded-lg border border-gray-700 flex items-center gap-2 transition-colors"><IconDownload className="w-4 h-4" /> JSON</button>}</div>
                  </div>
 
-                 {/* Empty State */}
                  {prompts.length === 0 && !isGenerating && (
                      <div className="flex-1 flex flex-col items-center justify-center text-gray-600 space-y-4">
-                         <div className="p-6 rounded-full bg-gray-800/30 border border-gray-700/50">
-                             <IconSparkles className="w-12 h-12 opacity-50" />
-                         </div>
-                         <p className="text-sm font-mono text-center max-w-xs">
-                             Configured & Ready.<br/>
-                             Upload context or click Generate to begin.
-                         </p>
-                         {taskType === 'generic' && (
-                             <button 
-                                onClick={handleGenerateBatch}
-                                className="mt-4 px-6 py-2 bg-musaicPurple/20 text-musaicPurple border border-musaicPurple/50 rounded-lg text-xs font-bold uppercase hover:bg-musaicPurple/30 transition-colors"
-                             >
-                                 Start Generic Batch
-                             </button>
-                         )}
+                         <div className="p-6 rounded-full bg-gray-800/30 border border-gray-700/50"><IconSparkles className="w-12 h-12 opacity-50" /></div>
+                         <p className="text-sm font-mono text-center max-w-xs">Configured & Ready.<br/>Upload context or click Generate to begin.</p>
+                         {taskType === 'generic' && <button onClick={handleGenerateBatch} className="mt-4 px-6 py-2 bg-musaicPurple/20 text-musaicPurple border border-musaicPurple/50 rounded-lg text-xs font-bold uppercase hover:bg-musaicPurple/30 transition-colors">Start Generic Batch</button>}
                      </div>
                  )}
 
-                 {/* List */}
                  <div className="space-y-4 flex-1 pb-20">
-                     {currentPrompts.map((p) => (
-                         <PromptCard 
-                            key={p.id} 
-                            prompt={p} 
-                            onUpdate={handleUpdatePrompt}
-                            onToggleCopy={handleToggleCopy}
-                            isCopied={!!p.isCopied}
-                         />
-                     ))}
-                     
-                     {/* Loading Skeletons */}
-                     {isGenerating && (
-                         <div className="space-y-4 animate-pulse opacity-50">
-                             {[1,2].map(i => (
-                                 <div key={i} className="h-48 bg-gray-800/50 rounded-xl border border-gray-700/50"></div>
-                             ))}
-                         </div>
-                     )}
-
-                    {/* NEW: Bottom 'Generate Next' Button */}
-                    {generatedCount < targetTotal && !isGenerating && prompts.length > 0 && (
+                     {currentPrompts.map((p) => <PromptCard key={p.id} prompt={p} onUpdate={handleUpdatePrompt} onToggleCopy={handleToggleCopy} isCopied={!!p.isCopied} />)}
+                     {isGenerating && <div className="space-y-4 animate-pulse opacity-50">{[1,2].map(i => <div key={i} className="h-48 bg-gray-800/50 rounded-xl border border-gray-700/50"></div>)}</div>}
+                     {generatedCount < targetTotal && !isGenerating && prompts.length > 0 && (
                         <div className="pt-8 pb-4 flex justify-center">
-                            <button
-                                onClick={handleGenerateBatch}
-                                className="w-full max-w-md py-4 rounded-xl font-bold uppercase text-sm tracking-widest bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 hover:border-gray-500 shadow-lg transition-all flex items-center justify-center gap-2 group"
-                            >
-                                <IconSparkles className="w-4 h-4 text-musaicGold group-hover:rotate-12 transition-transform" />
-                                Generate Next Batch ({Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount)})
-                            </button>
+                            <button onClick={handleGenerateBatch} className="w-full max-w-md py-4 rounded-xl font-bold uppercase text-sm tracking-widest bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 hover:border-gray-500 shadow-lg transition-all flex items-center justify-center gap-2 group"><IconSparkles className="w-4 h-4 text-musaicGold group-hover:rotate-12 transition-transform" />Generate Next Batch ({Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount)})</button>
                         </div>
                     )}
-
                  </div>
 
-                 {/* Pagination Footer */}
                  {prompts.length > 0 && (
                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black/90 to-transparent flex items-center justify-between border-t border-gray-800/30">
-                         <button 
-                            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                            disabled={currentPage === 1}
-                            className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-30 transition-colors"
-                         >
-                             <IconArrowLeft className="w-5 h-5" />
-                         </button>
-                         
-                         <span className="font-mono text-xs text-gray-400">
-                             Page {currentPage} of {totalPages}
-                         </span>
-
-                         <div className="flex gap-2">
-                             <button 
-                                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                                disabled={currentPage === totalPages}
-                                className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-30 transition-colors"
-                             >
-                                 <IconArrowRight className="w-5 h-5" />
-                             </button>
-                         </div>
+                         <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-30 transition-colors"><IconArrowLeft className="w-5 h-5" /></button>
+                         <span className="font-mono text-xs text-gray-400">Page {currentPage} of {totalPages}</span>
+                         <div className="flex gap-2"><button onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="p-2 rounded-lg hover:bg-white/10 disabled:opacity-30 transition-colors"><IconArrowRight className="w-5 h-5" /></button></div>
                      </div>
                  )}
             </div>
-
           </main>
         </div>
       )}
