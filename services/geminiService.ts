@@ -65,6 +65,38 @@ OPERATIONAL RULES:
 - Realism is mandatory.
 `;
 
+const RICH_MEDIA_DIRECTIVE = `
+# Context & Goal
+You are an expert at creating hyper-realistic image generation prompts optimized for AI image generators. Your prompts produce authentic smartphone photos, lifestyle shots, and natural photography.
+
+## JSON Structure Template
+Always use this exact structure:
+{
+  "subject": {
+    "description": "[Action-based scene overview]",
+    "mirror_rules": "[Rules for mirror selfies]",
+    "age": "[Approx age]",
+    "expression": "[Emotion]",
+    "imperfections": {
+       "skin": "[Texture/Pores/Flush]",
+       "hair": "[Flyaways/Messy strands]",
+       "general": "[Sweat/Creases/Lint]"
+    },
+    "body": "[Physical Profile - injected]",
+    "clothing": { "top": {...}, "bottom": {...} },
+    "face": { "makeup": "..." }
+  },
+  "accessories": { ... },
+  "photography": { "camera_style": "...", "angle": "...", "shot_type": "..." },
+  "background": { "setting": "...", "elements": [...] }
+}
+
+CRITICAL RULES:
+1. NO STRUCTURAL FACE DESCRIPTION (Eyes/Nose/Jaw are handled by reference image). Only makeup/expression/imperfections.
+2. UNIQUE OUTFITS per item.
+3. POPULATE IMPERFECTIONS.
+`;
+
 export const analyzeSubjectImages = async (
     headshotDataUrl: string | null, 
     bodyshotDataUrl: string | null
@@ -131,7 +163,7 @@ export const analyzeSubjectImages = async (
 export const generateDatasetPrompts = async (
   params: {
       taskType: TaskType,
-      subjectDescription: string, // This maps to Body Stack
+      subjectDescription: string, // Maps to Body Stack
       identity: IdentityContext, // backstory maps to Realism Stack, profession to Archetype
       safetyMode: SafetyMode,
       productImages?: string[],
@@ -144,11 +176,6 @@ export const generateDatasetPrompts = async (
   const ai = getAiClient();
 
   const { taskType, subjectDescription, identity, safetyMode, productImages, count, startCount, totalTarget, previousSettings } = params;
-  
-  // Mapping Inputs to Vacuum Protocol Variables
-  const BODY_STACK = subjectDescription;
-  const REALISM_STACK = identity.backstory || "subsurface scattering, detailed skin texture, visible pores, faint skin sheen, peach fuzz, natural lip texture, unretouched, natural film grain";
-  const ARCHETYPE = identity.profession || "young woman";
   
   // --- Manifest Generation ---
   const batchManifest: {
@@ -181,7 +208,7 @@ export const generateDatasetPrompts = async (
         });
       }
   } else {
-      // LoRA Mode - Century Protocol Ratios
+      // LoRA Mode - Century Protocol
       const headshotLimit = Math.max(1, Math.floor(totalTarget * 0.35)); 
       const halfBodyLimit = headshotLimit + Math.max(1, Math.floor(totalTarget * 0.30));
       const threeQuarterLimit = halfBodyLimit + Math.max(1, Math.floor(totalTarget * 0.20));
@@ -225,25 +252,6 @@ export const generateDatasetPrompts = async (
     `Item ${m.index + 1}: ${m.meta.type} (${m.meta.label}). Metadata: ${m.meta.index}/${m.meta.total}`
   ).join("\n");
 
-  // Wardrobe Directives
-  let clothingDirective = "";
-  if (safetyMode === 'nsfw' && taskType !== 'generic') {
-      clothingDirective = `WARDROBE: ANATOMICAL/FIGURE-FORMING. Use technical terms: "second-skin fit", "anatomical seaming", "compressive", "sculpted", "bias-cut". Clothing must trace the body.`;
-  } else {
-      clothingDirective = `WARDROBE: SFW/MODEST. Casual, standard, non-revealing.`;
-  }
-
-  // Product Directive
-  let productDirective = "";
-  const parts: any[] = [];
-  if (taskType === 'product' && productImages && productImages.length > 0) {
-      productImages.forEach(img => {
-          const { mimeType, data } = parseDataUrl(img);
-          parts.push({ inlineData: { mimeType, data } });
-      });
-      productDirective = `MODE: PRODUCT AD. Integrate product naturally. Invent branding if generic.`;
-  }
-
   // Anti-Repetition
   let repetitionDirective = "";
   if (previousSettings && previousSettings.length > 0) {
@@ -251,65 +259,121 @@ export const generateDatasetPrompts = async (
       repetitionDirective = `AVOID SETTINGS: [${recentSettings}]. Invent NEW locations.`;
   }
 
-  const promptText = `
-    ${VACUUM_COMPILER_DIRECTIVE}
+  // --- HYBRID GENERATION LOGIC ---
+  
+  let promptText = "";
+  let schema: Schema;
 
-    INPUT DATA:
-    ARCHETYPE: ${ARCHETYPE}
-    BODY_STACK: ${BODY_STACK}
-    REALISM_STACK: ${REALISM_STACK}
+  // MODE A: LORA (Vacuum Protocol)
+  if (taskType === 'lora') {
+      const BODY_STACK = subjectDescription;
+      const REALISM_STACK = identity.backstory || "subsurface scattering, detailed skin texture, visible pores, faint skin sheen";
+      const ARCHETYPE = identity.profession || "young woman";
 
-    ${clothingDirective}
-    ${productDirective}
-    ${repetitionDirective}
-
-    TASK: Generate exactly ${count} JSON prompts following this MANIFEST:
-    ${manifestString}
-
-    OUTPUT TEMPLATE PER ITEM:
-    {
-      "generation_data": {
-        "reference_logic": {
-          "primary_ref": "Headshot (0.8)",
-          "secondary_ref": "Full Body (0.8)"
-        },
-        "final_prompt_string": "[THE ASSEMBLED STRING]"
+      let clothingDirective = "";
+      if (safetyMode === 'nsfw') {
+          clothingDirective = `WARDROBE: ANATOMICAL/FIGURE-FORMING. Use technical terms: "second-skin fit", "anatomical seaming", "compressive". Clothing must trace the body.`;
+      } else {
+          clothingDirective = `WARDROBE: SFW/MODEST. Casual, standard.`;
       }
-    }
 
-    CRITICAL RULES:
-    1. NO FACIAL FEATURES in the prompt string.
-    2. USE DENSE TOKEN format.
-    3. UNIQUE OUTFITS per item.
-    
-    Return a JSON array of these objects.
-  `;
+      promptText = `
+        ${VACUUM_COMPILER_DIRECTIVE}
+        INPUT DATA:
+        ARCHETYPE: ${ARCHETYPE}
+        BODY_STACK: ${BODY_STACK}
+        REALISM_STACK: ${REALISM_STACK}
+        ${clothingDirective}
+        ${repetitionDirective}
+        TASK: Generate exactly ${count} JSON prompts following this MANIFEST:
+        ${manifestString}
+        OUTPUT TEMPLATE PER ITEM:
+        {
+          "generation_data": {
+            "reference_logic": { "primary_ref": "Headshot (0.8)", "secondary_ref": "Full Body (0.8)" },
+            "final_prompt_string": "[THE ASSEMBLED STRING]"
+          }
+        }
+        Return a JSON array.
+      `;
 
+      schema = {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            generation_data: {
+                type: Type.OBJECT,
+                properties: {
+                    reference_logic: { type: Type.OBJECT, properties: { primary_ref: { type: Type.STRING }, secondary_ref: { type: Type.STRING } } },
+                    final_prompt_string: { type: Type.STRING }
+                }
+            },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["generation_data"]
+        }
+      };
+
+  } else {
+      // MODE B: RICH JSON (Product / Generic)
+      
+      // Product Logic
+      let productDirective = "";
+      const parts: any[] = [];
+      if (taskType === 'product' && productImages && productImages.length > 0) {
+          productImages.forEach(img => {
+              const { mimeType, data } = parseDataUrl(img);
+              parts.push({ inlineData: { mimeType, data } });
+          });
+          productDirective = `MODE: PRODUCT AD. Integrate product naturally. Invent branding if generic.`;
+      }
+
+      let clothingDirective = "";
+      if (safetyMode === 'nsfw') {
+          clothingDirective = `WARDROBE: ANATOMICAL. Fit should be "second-skin", "form-fitting".`;
+      }
+
+      promptText = `
+        ${RICH_MEDIA_DIRECTIVE}
+        IDENTITY CONTEXT:
+        Name: ${identity.name}
+        Profession: ${identity.profession}
+        Backstory: ${identity.backstory}
+        
+        SUBJECT: SPECIFIC. Use this PHYSICAL PROFILE: "${subjectDescription}"
+        ${clothingDirective}
+        ${productDirective}
+        ${repetitionDirective}
+        
+        TASK: Generate exactly ${count} JSON prompts following this MANIFEST:
+        ${manifestString}
+        
+        Return a JSON array.
+      `;
+
+      schema = {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            text: { type: Type.STRING, description: "The full JSON prompt object stringified." },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["text", "tags"]
+        }
+      };
+  }
+
+  const parts: any[] = [];
+  // Add product images again if needed for Rich mode
+  if (taskType === 'product' && productImages && productImages.length > 0) {
+      productImages.forEach(img => {
+          const { mimeType, data } = parseDataUrl(img);
+          parts.push({ inlineData: { mimeType, data } });
+      });
+  }
   parts.push({ text: promptText });
-
-  const schema: Schema = {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        generation_data: {
-            type: Type.OBJECT,
-            properties: {
-                reference_logic: {
-                    type: Type.OBJECT,
-                    properties: {
-                        primary_ref: { type: Type.STRING },
-                        secondary_ref: { type: Type.STRING }
-                    }
-                },
-                final_prompt_string: { type: Type.STRING }
-            }
-        },
-        tags: { type: Type.ARRAY, items: { type: Type.STRING } }
-      },
-      required: ["generation_data"]
-    }
-  };
 
   try {
     const response = await ai.models.generateContent({
@@ -327,8 +391,9 @@ export const generateDatasetPrompts = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return rawData.map((item: any, idx: number) => {
         const manifestItem = batchManifest[idx];
-        // Ensure text is the full stringified object for the Card to parse
-        const textContent = JSON.stringify(item);
+        // For Rich JSON, 'text' is already stringified. For LoRA, we stringify the whole item.
+        const textContent = taskType === 'lora' ? JSON.stringify(item) : item.text;
+        
         return {
             id: generateId(),
             text: textContent, 
@@ -344,5 +409,5 @@ export const generateDatasetPrompts = async (
 };
 
 export const refineSinglePrompt = async (originalPrompt: string, instruction: string): Promise<string> => {
-    return originalPrompt; // Disabled for Vacuum Protocol to prevent breaking the token string
+    return originalPrompt; 
 }
