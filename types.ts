@@ -1,5 +1,5 @@
 
-export type TaskType = 'generic' | 'lora' | 'product';
+export type TaskType = 'lora' | 'product' | 'ugc';
 export type SafetyMode = 'sfw' | 'nsfw';
 
 export interface PromptItem {
@@ -31,6 +31,11 @@ export interface AnalysisResult {
     body_stack: string;
     realism_stack: string;
   }
+}
+
+export interface UGCSettings {
+  platform: 'instagram' | 'tiktok' | 'youtube' | 'linkedin' | 'general';
+  customInstruction: string;
 }
 
 export interface SavedInfluencer {

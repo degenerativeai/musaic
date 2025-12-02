@@ -4,7 +4,7 @@ import { analyzeSubjectImages, generateDatasetPrompts } from './services/geminiS
 import { PromptCard } from './components/PromptCard';
 import { SplashScreen } from './components/SplashScreen';
 import { IconSparkles, IconDownload, IconRefresh, IconProduct, IconFlame, IconArrowLeft, IconArrowRight, IconTrash, IconUser, IconHistory, IconPackage, IconPlus, IconMusaic, IconKey, IconCheck } from './components/Icons';
-import { PromptItem, TaskType, SafetyMode, IdentityContext, SavedInfluencer } from './types';
+import { PromptItem, TaskType, SafetyMode, IdentityContext, SavedInfluencer, UGCSettings } from './types';
 
 // Helper to read file as base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -27,6 +27,7 @@ export default function App() {
 
     // --- Configuration State ---
     const [taskType, setTaskType] = useState<TaskType>('lora');
+    const [ugcSettings, setUgcSettings] = useState<UGCSettings>({ platform: 'general', customInstruction: '' });
     const [safetyMode, setSafetyMode] = useState<SafetyMode>('sfw');
     const [targetTotal, setTargetTotal] = useState(50);
 
@@ -243,7 +244,7 @@ export default function App() {
     };
 
     const handleGenerateBatch = async () => {
-        if (!description && taskType !== 'generic') {
+        if (!description && taskType !== 'ugc') {
             setError("Subject Analysis required for LoRA/Product tasks.");
             return;
         }
@@ -275,6 +276,7 @@ export default function App() {
                 count: batchSize,
                 startCount: generatedCount,
                 totalTarget: targetTotal,
+                ugcSettings,
                 previousSettings: usedSettings
             });
 
@@ -286,7 +288,7 @@ export default function App() {
             const newSettings: string[] = [];
             newPrompts.forEach(p => {
                 try {
-                    const cleaned = p.text.replace(/```json\n?|```/g, '').trim();
+                    const cleaned = p.text.replace(/```json\n ?| ```/g, '').trim();
                     const json = JSON.parse(cleaned);
                     if (json.background?.setting) {
                         newSettings.push(json.background.setting);
@@ -366,15 +368,15 @@ export default function App() {
 
                         <div className="lg:col-span-4 space-y-8">
                             <div className="bg-charcoal border border-gray-800 rounded-2xl p-1 overflow-hidden flex shadow-lg">
-                                {(['lora', 'product', 'generic'] as TaskType[]).map((t) => (
-                                    <button key={t} onClick={() => { if (taskType !== t) triggerResetFlow(t); }} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-all rounded-xl ${taskType === t ? 'bg-gradient-to-br from-gray-700 to-gray-800 text-white shadow-inner border border-gray-600' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>{t}</button>
+                                {(['lora', 'product', 'ugc'] as TaskType[]).map((t) => (
+                                    <button key={t} onClick={() => { if (taskType !== t) triggerResetFlow(t); }} className={`flex - 1 py - 3 text - xs font - bold uppercase tracking - wide transition - all rounded - xl ${taskType === t ? 'bg-gradient-to-br from-gray-700 to-gray-800 text-white shadow-inner border border-gray-600' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'} `}>{t === 'ugc' ? 'UGC' : t}</button>
                                 ))}
                             </div>
 
                             <section className="space-y-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-musaicPurple"></span>Context</h2>
-                                    {taskType === 'product' && !isSelectingInfluencer && (
+                                    {(taskType === 'product' || taskType === 'lora') && !isSelectingInfluencer && (
                                         <button onClick={() => setIsSelectingInfluencer(!isSelectingInfluencer)} className="text-[10px] text-musaicGold hover:underline flex items-center gap-1"><IconHistory className="w-3 h-3" />History</button>
                                     )}
                                 </div>
@@ -398,11 +400,11 @@ export default function App() {
                                     </div>
                                 )}
 
-                                {taskType !== 'generic' && (
+                                {taskType !== 'ugc' && (
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-2">
                                             <label className="text-[10px] uppercase font-bold text-gray-500">Headshot</label>
-                                            <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${headshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'}`}>
+                                            <div className={`relative h - 32 rounded - 2xl border - 2 overflow - hidden transition - all ${headshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'} `}>
                                                 {headshot ? (
                                                     <>
                                                         <img src={headshot} alt="Head" className="w-full h-full object-cover" />
@@ -415,7 +417,7 @@ export default function App() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] uppercase font-bold text-gray-500">Full Body</label>
-                                            <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${bodyshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'}`}>
+                                            <div className={`relative h - 32 rounded - 2xl border - 2 overflow - hidden transition - all ${bodyshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'} `}>
                                                 {bodyshot ? (
                                                     <>
                                                         <img src={bodyshot} alt="Body" className="w-full h-full object-cover" />
@@ -429,8 +431,8 @@ export default function App() {
                                     </div>
                                 )}
 
-                                {taskType !== 'generic' && (
-                                    <button onClick={handleAnalyze} disabled={isAnalyzing || (!headshot && !bodyshot)} className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-musaicPurple hover:to-blue-600 text-white shadow-lg'}`}>
+                                {taskType !== 'ugc' && (
+                                    <button onClick={handleAnalyze} disabled={isAnalyzing || (!headshot && !bodyshot)} className={`w - full py - 3 rounded - xl font - bold uppercase text - xs tracking - widest transition - all flex items - center justify - center gap - 2 ${isAnalyzing ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-musaicPurple hover:to-blue-600 text-white shadow-lg'} `}>
                                         {isAnalyzing ? <><IconRefresh className="w-4 h-4 animate-spin" /> Analyzing...</> : <><IconSparkles className="w-4 h-4 text-musaicGold" /> Analyze Profile</>}
                                     </button>
                                 )}
@@ -463,7 +465,7 @@ export default function App() {
                                         <label className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2"><IconPackage className="w-4 h-4" /> Product Assets</label>
                                         <div className="flex gap-2">
                                             {[0, 1, 2].map((idx) => (
-                                                <div key={idx} className={`relative flex-1 h-20 rounded-xl border border-dashed border-gray-700 bg-black/20 overflow-hidden hover:border-gray-500 transition-colors`}>
+                                                <div key={idx} className={`relative flex - 1 h - 20 rounded - xl border border - dashed border - gray - 700 bg - black / 20 overflow - hidden hover: border - gray - 500 transition - colors`}>
                                                     {productImages[idx] ? (
                                                         <>
                                                             <img src={productImages[idx]!} className="w-full h-full object-cover" />
@@ -483,7 +485,7 @@ export default function App() {
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-musaicPurple"></span>Generation</h2>
                                     {taskType === 'lora' && (
-                                        <button onClick={() => setSafetyMode(safetyMode === 'sfw' ? 'nsfw' : 'sfw')} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all flex items-center gap-1 border ${safetyMode === 'nsfw' ? 'bg-red-900/20 text-red-400 border-red-900/50 shadow-[0_0_10px_rgba(248,113,113,0.2)]' : 'bg-green-900/20 text-green-400 border-green-900/50'}`}>
+                                        <button onClick={() => setSafetyMode(safetyMode === 'sfw' ? 'nsfw' : 'sfw')} className={`px - 3 py - 1 rounded - full text - [10px] font - bold uppercase transition - all flex items - center gap - 1 border ${safetyMode === 'nsfw' ? 'bg-red-900/20 text-red-400 border-red-900/50 shadow-[0_0_10px_rgba(248,113,113,0.2)]' : 'bg-green-900/20 text-green-400 border-green-900/50'} `}>
                                             {safetyMode === 'nsfw' ? <><IconFlame className="w-3 h-3" /> Accentuate Form</> : 'Standard Mode'}
                                         </button>
                                     )}
@@ -495,8 +497,8 @@ export default function App() {
                                     <div className="flex justify-between text-[10px] text-gray-600 font-mono"><span>10</span><span>100</span></div>
                                 </div>
 
-                                <button onClick={handleGenerateBatch} disabled={isGenerating || generatedCount >= targetTotal || (taskType !== 'generic' && !description)} className={`w-full py-4 rounded-xl font-bold uppercase text-sm tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] ${generatedCount >= targetTotal ? 'bg-green-600 text-white cursor-default' : isGenerating ? 'bg-gray-700 text-gray-400 cursor-wait' : 'bg-gradient-to-r from-musaicPurple to-blue-600 text-white hover:shadow-musaicPurple/25'}`}>
-                                    {isGenerating ? <span className="flex items-center justify-center gap-2"><span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>Synthesizing...</span> : generatedCount >= targetTotal ? <span className="flex items-center justify-center gap-2"><IconCheck className="w-5 h-5" /> Complete</span> : `Generate ${Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount) === 0 ? '' : 'Next ' + Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount)}`}
+                                <button onClick={handleGenerateBatch} disabled={isGenerating || generatedCount >= targetTotal || (taskType !== 'ugc' && !description)} className={`w - full py - 4 rounded - xl font - bold uppercase text - sm tracking - widest transition - all shadow - xl hover: scale - [1.02] active: scale - [0.98] ${generatedCount >= targetTotal ? 'bg-green-600 text-white cursor-default' : isGenerating ? 'bg-gray-700 text-gray-400 cursor-wait' : 'bg-gradient-to-r from-musaicPurple to-blue-600 text-white hover:shadow-musaicPurple/25'} `}>
+                                    {isGenerating ? <span className="flex items-center justify-center gap-2"><span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>Synthesizing...</span> : generatedCount >= targetTotal ? <span className="flex items-center justify-center gap-2"><IconCheck className="w-5 h-5" /> Complete</span> : `Generate ${Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount) === 0 ? '' : 'Next ' + Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount)} `}
                                 </button>
 
                                 {(error || authError) && (
@@ -515,20 +517,22 @@ export default function App() {
                                 <div className="flex-1 flex flex-col items-center justify-center text-gray-600 space-y-4">
                                     <div className="p-6 rounded-full bg-gray-800/30 border border-gray-700/50"><IconSparkles className="w-12 h-12 opacity-50" /></div>
                                     <p className="text-sm font-mono text-center max-w-xs">Configured & Ready.<br />Upload context or click Generate to begin.</p>
-                                    {taskType === 'generic' && <button onClick={handleGenerateBatch} className="mt-4 px-6 py-2 bg-musaicPurple/20 text-musaicPurple border border-musaicPurple/50 rounded-lg text-xs font-bold uppercase hover:bg-musaicPurple/30 transition-colors">Start Generic Batch</button>}
+                                    {taskType === 'ugc' && <button onClick={handleGenerateBatch} className="mt-4 px-6 py-2 bg-musaicPurple/20 text-musaicPurple border border-musaicPurple/50 rounded-lg text-xs font-bold uppercase hover:bg-musaicPurple/30 transition-colors">Start Generic Batch</button>}
                                 </div>
                             )}
 
                             <div className="space-y-4 flex-1 pb-20">
                                 {currentPrompts.map((p) => <PromptCard key={p.id} prompt={p} onUpdate={handleUpdatePrompt} onToggleCopy={handleToggleCopy} isCopied={!!p.isCopied} />)}
-                                {isGenerating && <div className="space-y-4 animate-pulse opacity-50">{[1, 2].map(i => <div key={i} className="h-48 bg-gray-800/50 rounded-xl border border-gray-700/50"></div>)}</div>}
+
                                 {generatedCount < targetTotal && prompts.length > 0 && (
                                     <div className="pt-8 pb-4 flex justify-center">
-                                        <button onClick={handleGenerateBatch} disabled={isGenerating} className={`w-full max-w-md py-4 rounded-xl font-bold uppercase text-sm tracking-widest border shadow-lg transition-all flex items-center justify-center gap-2 group ${isGenerating ? 'bg-gray-800 text-gray-500 border-gray-800 cursor-wait' : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700 hover:border-gray-500'}`}>
+                                        <button onClick={handleGenerateBatch} disabled={isGenerating} className={`w - full max - w - md py - 4 rounded - xl font - bold uppercase text - sm tracking - widest border shadow - lg transition - all flex items - center justify - center gap - 2 group ${isGenerating ? 'bg-gray-800 text-gray-500 border-gray-800 cursor-wait' : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700 hover:border-gray-500'} `}>
                                             {isGenerating ? <><span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>Synthesizing...</> : <><IconSparkles className="w-4 h-4 text-musaicGold group-hover:rotate-12 transition-transform" />Generate Next Batch ({Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount)})</>}
                                         </button>
                                     </div>
                                 )}
+
+                                {isGenerating && <div className="space-y-4 animate-pulse opacity-50">{[1, 2].map(i => <div key={i} className="h-48 bg-gray-800/50 rounded-xl border border-gray-700/50"></div>)}</div>}
                             </div>
 
                             {prompts.length > 0 && (

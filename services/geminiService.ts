@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Schema, Type } from "@google/genai";
-import { PromptItem, IdentityContext, TaskType, SafetyMode, AnalysisResult } from "../types";
+import { PromptItem, IdentityContext, TaskType, SafetyMode, AnalysisResult, UGCSettings } from "../types";
 
 // Security: Retrieve key from session storage dynamically. Never store in variables.
 const getAiClient = () => {
@@ -172,12 +172,13 @@ export const generateDatasetPrompts = async (
     count: number,
     startCount: number,
     totalTarget: number,
-    previousSettings?: string[]
+    previousSettings?: string[],
+    ugcSettings?: UGCSettings
   }
 ): Promise<PromptItem[]> => {
   const ai = getAiClient();
 
-  const { taskType, subjectDescription, identity, safetyMode, productImages, count, startCount, totalTarget, previousSettings } = params;
+  const { taskType, subjectDescription, identity, safetyMode, productImages, count, startCount, totalTarget, previousSettings, ugcSettings } = params;
 
   // --- Manifest Generation ---
   const batchManifest: {
@@ -200,13 +201,13 @@ export const generateDatasetPrompts = async (
         meta: { type: "PRODUCT AD", index: absoluteIndex + 1, total: totalTarget, label: "Optimized Ad Composition" }
       });
     }
-  } else if (taskType === 'generic') {
+  } else if (taskType === 'ugc') {
     for (let i = 0; i < count; i++) {
       const absoluteIndex = startCount + i;
       batchManifest.push({
         index: i,
         absoluteIndex,
-        meta: { type: "UGC LIFESTYLE", index: absoluteIndex + 1, total: totalTarget, label: "Authentic Realism" }
+        meta: { type: "UGC LIFESTYLE", index: absoluteIndex + 1, total: totalTarget, label: `Authentic ${ugcSettings?.platform || 'Social'} Content` }
       });
     }
   } else {
@@ -384,7 +385,37 @@ export const generateDatasetPrompts = async (
         const { mimeType, data } = parseDataUrl(img);
         parts.push({ inlineData: { mimeType, data } });
       });
-      productDirective = `MODE: PRODUCT AD. Integrate product naturally. Invent branding if generic.`;
+      productDirective = `MODE: PRODUCT AD. Integrate product naturally. Invent branding if ugc.`;
+    }
+
+    // UGC Logic
+    let ugcDirective = "";
+    if (taskType === 'ugc' && ugcSettings) {
+      const { platform, customInstruction } = ugcSettings;
+      let platformRules = "";
+
+      switch (platform) {
+        case 'instagram':
+          platformRules = "AESTHETIC: Curated perfection, high contrast, trending fashion, 'golden hour' lighting, visually pleasing composition.";
+          break;
+        case 'tiktok':
+          platformRules = "VIBE: Authentic, 'behind the scenes', dynamic motion, ring light or natural window light, engaging hook, slightly messy/real.";
+          break;
+        case 'linkedin':
+          platformRules = "PROFESSIONAL: Polished, confident, office/workspace/conference settings, smart casual or business attire, success-oriented.";
+          break;
+        case 'youtube':
+          platformRules = "THUMBNAIL QUALITY: High saturation, expressive face, clear subject separation, storytelling elements, engaging eye contact.";
+          break;
+        default:
+          platformRules = "GENERAL SOCIAL: High quality lifestyle photography, engaging and shareable.";
+      }
+
+      ugcDirective = `
+        PLATFORM OPTIMIZATION: ${platform.toUpperCase()}
+        ${platformRules}
+        CUSTOM REQUEST: "${customInstruction || 'None'}" (IF SET, PRIORITIZE THIS REQUEST ABOVE ALL ELSE).
+        `;
     }
 
     let clothingDirective = "";
@@ -406,6 +437,7 @@ export const generateDatasetPrompts = async (
         - NEVER repeat a setting.
         
         ${productDirective}
+        ${ugcDirective}
         ${repetitionDirective}
         
         TASK: Generate exactly ${count} JSON prompts following this MANIFEST:
