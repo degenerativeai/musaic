@@ -257,7 +257,8 @@ export const generateDatasetPrompts = async (
   // Anti-Repetition
   let repetitionDirective = "";
   if (previousSettings && previousSettings.length > 0) {
-    const recentSettings = previousSettings.slice(-25).join(", ");
+    // Sanitize: Take last 10, truncate to 50 chars each to prevent context bloat
+    const recentSettings = previousSettings.slice(-10).map(s => s.substring(0, 50)).join(", ");
     repetitionDirective = `AVOID SETTINGS: [${recentSettings}]. Invent NEW locations.`;
   }
 
@@ -297,6 +298,7 @@ export const generateDatasetPrompts = async (
         - If you used "Black Top" in Item 1, you CANNOT use it in Item 2.
         - EXPRESSION LOGIC: 10% must be emotional (Laughter, Sadness, Surprise). 90% Neutral/Smile/Alluring.
         - SYNTAX BAN: DO NOT use "(text:0.8)" weighting. Use natural language only.
+        - CRITICAL: POPULATE ALL FIELDS. Do not return "none" or "not specified". Invent details if needed.
         
         TASK: Generate exactly ${count} JSON prompts following this MANIFEST:
         ${manifestString}
