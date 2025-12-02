@@ -341,8 +341,16 @@ export const generateDatasetPrompts = async (
               age: { type: Type.STRING },
               expression: { type: Type.STRING },
               imperfections: { type: Type.OBJECT, properties: { skin: { type: Type.STRING }, hair: { type: Type.STRING }, general: { type: Type.STRING } } },
-              clothing: { type: Type.OBJECT, properties: { top: { type: Type.OBJECT, properties: { color: { type: Type.STRING }, type: { type: Type.STRING } } }, bottom: { type: Type.OBJECT, properties: { color: { type: Type.STRING }, type: { type: Type.STRING } } } } }
-            }
+              clothing: {
+                type: Type.OBJECT,
+                properties: {
+                  top: { type: Type.OBJECT, properties: { color: { type: Type.STRING }, type: { type: Type.STRING } }, required: ["color", "type"] },
+                  bottom: { type: Type.OBJECT, properties: { color: { type: Type.STRING }, type: { type: Type.STRING } }, required: ["color", "type"] }
+                },
+                required: ["top", "bottom"]
+              }
+            },
+            required: ["description", "age", "expression", "imperfections", "clothing"]
           },
           background: {
             type: Type.OBJECT,
