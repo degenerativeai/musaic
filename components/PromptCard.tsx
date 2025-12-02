@@ -28,7 +28,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
     const isLoRAMode = !!parsedContent?.generation_data;
 
     // Dense Data (LoRA)
-    const finalString = parsedContent?.generation_data?.final_prompt_string || prompt.text;
+    const finalString = parsedContent?.generation_data?.final_prompt_string || (parsedContent?.subject ? `Hyper-realistic ${parsedContent.photography?.shot_type || 'Shot'}, ${parsedContent.subject.description || ''}, ${parsedContent.background?.setting || ''}, ${parsedContent.subject.clothing?.top?.type || ''} ${parsedContent.subject.clothing?.top?.color || ''}, ${parsedContent.subject.clothing?.bottom?.type || ''} ${parsedContent.subject.clothing?.bottom?.color || ''}, 8k, raw photo.` : prompt.text);
     const refLogic = parsedContent?.generation_data?.reference_logic;
 
     // Rich Data (Product/Generic)
@@ -102,8 +102,8 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
 
     return (
         <div className={`group relative bg-charcoal border rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-black/60 ${isCopied
-                ? 'border-green-500/50 ring-1 ring-green-500/30'
-                : 'border-gray-800 hover:border-gray-600'
+            ? 'border-green-500/50 ring-1 ring-green-500/30'
+            : 'border-gray-800 hover:border-gray-600'
             }`}>
 
             {isCopied && <div className="absolute inset-0 bg-green-500/5 pointer-events-none z-0" />}

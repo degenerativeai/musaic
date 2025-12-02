@@ -274,7 +274,11 @@ export const generateDatasetPrompts = async (
 
     let clothingDirective = "";
     if (safetyMode === 'nsfw') {
-      clothingDirective = `WARDROBE: REVEALING & BOLD. Focus on skin exposure and body display. Keywords: Plunging, Cropped, Micro, Open Back, Cutouts, Bikini, Lingerie-style. BANNED: Sheer, Lace. MUST BE UNIQUE PER ITEM.`;
+      clothingDirective = `WARDROBE: REVEALING & BOLD. Focus on skin exposure suitable for the setting.
+      - PRIORITIZE: Crop Tops, Halters, Low Rise Jeans, Micro Skirts, Bikini Tops, Open Backs, Deep V-Necks.
+      - CONTEXTUAL: If gym -> Sports Bra/Shorts. If night -> Mini Dress. If beach -> Bikini.
+      - AVOID: "Cutouts" (unless necessary), "Sheer", "Lace".
+      - MUST BE UNIQUE PER ITEM.`;
     } else {
       clothingDirective = `WARDROBE: SFW/MODEST. Casual, standard. MUST BE UNIQUE PER ITEM. VARY COLORS, CUTS, AND STYLES.`;
     }
@@ -291,14 +295,16 @@ export const generateDatasetPrompts = async (
         - NEVER repeat an outfit.
         - NEVER repeat a setting.
         - If you used "Black Top" in Item 1, you CANNOT use it in Item 2.
+        - EXPRESSION LOGIC: 10% must be emotional (Laughter, Sadness, Surprise). 90% Neutral/Smile/Alluring.
+        - SYNTAX BAN: DO NOT use "(text:0.8)" weighting. Use natural language only.
         
         TASK: Generate exactly ${count} JSON prompts following this MANIFEST:
         ${manifestString}
         OUTPUT TEMPLATE PER ITEM:
         {
           "generation_data": {
-            "reference_logic": { "primary_ref": "Headshot (0.8)", "secondary_ref": "Full Body (0.8)" },
-            "final_prompt_string": "[THE ASSEMBLED STRING]"
+            "reference_logic": { "primary_ref": "Headshot", "secondary_ref": "Full Body" },
+            "final_prompt_string": "[COMPLIED STRING: Framing + Archetype + Action + Environment + Body + Wardrobe + Realism + Tech]"
           },
           "subject": {
              "description": "...",
@@ -322,8 +328,9 @@ export const generateDatasetPrompts = async (
             type: Type.OBJECT,
             properties: {
               reference_logic: { type: Type.OBJECT, properties: { primary_ref: { type: Type.STRING }, secondary_ref: { type: Type.STRING } } },
-              final_prompt_string: { type: Type.STRING }
-            }
+              final_prompt_string: { type: Type.STRING, description: "MANDATORY: The full compiled prompt string." }
+            },
+            required: ["reference_logic", "final_prompt_string"]
           },
           subject: {
             type: Type.OBJECT,

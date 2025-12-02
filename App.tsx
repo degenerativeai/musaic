@@ -522,9 +522,11 @@ export default function App() {
                             <div className="space-y-4 flex-1 pb-20">
                                 {currentPrompts.map((p) => <PromptCard key={p.id} prompt={p} onUpdate={handleUpdatePrompt} onToggleCopy={handleToggleCopy} isCopied={!!p.isCopied} />)}
                                 {isGenerating && <div className="space-y-4 animate-pulse opacity-50">{[1, 2].map(i => <div key={i} className="h-48 bg-gray-800/50 rounded-xl border border-gray-700/50"></div>)}</div>}
-                                {generatedCount < targetTotal && !isGenerating && prompts.length > 0 && (
+                                {generatedCount < targetTotal && prompts.length > 0 && (
                                     <div className="pt-8 pb-4 flex justify-center">
-                                        <button onClick={handleGenerateBatch} className="w-full max-w-md py-4 rounded-xl font-bold uppercase text-sm tracking-widest bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 hover:border-gray-500 shadow-lg transition-all flex items-center justify-center gap-2 group"><IconSparkles className="w-4 h-4 text-musaicGold group-hover:rotate-12 transition-transform" />Generate Next Batch ({Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount)})</button>
+                                        <button onClick={handleGenerateBatch} disabled={isGenerating} className={`w-full max-w-md py-4 rounded-xl font-bold uppercase text-sm tracking-widest border shadow-lg transition-all flex items-center justify-center gap-2 group ${isGenerating ? 'bg-gray-800 text-gray-500 border-gray-800 cursor-wait' : 'bg-gray-800 hover:bg-gray-700 text-white border-gray-700 hover:border-gray-500'}`}>
+                                            {isGenerating ? <><span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>Synthesizing...</> : <><IconSparkles className="w-4 h-4 text-musaicGold group-hover:rotate-12 transition-transform" />Generate Next Batch ({Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount)})</>}
+                                        </button>
                                     </div>
                                 )}
                             </div>
