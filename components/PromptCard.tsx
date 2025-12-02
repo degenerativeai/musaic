@@ -17,9 +17,22 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
     // Robust JSON Parsing
     const parsedContent = useMemo(() => {
         try {
-            const cleaned = prompt.text.replace(/```json\n?|```/g, '').trim();
+            if (!prompt.text) return null;
+
+            // 1. Try removing markdown code blocks (case insensitive)
+            let cleaned = prompt.text.replace(/```json\s*|```/gi, '').trim();
+
+            // 2. If it looks like it has a prefix/suffix, try to extract the JSON object
+            const firstBrace = cleaned.indexOf('{');
+            const lastBrace = cleaned.lastIndexOf('}');
+
+            if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+            }
+
             return JSON.parse(cleaned);
         } catch (e) {
+            console.warn("Failed to parse prompt JSON:", e);
             return null;
         }
     }, [prompt.text]);
