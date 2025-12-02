@@ -122,13 +122,12 @@ export const analyzeSubjectImages = async (
         properties: {
           uid: { type: Type.STRING, description: "Inferred Name (Culturally appropriate based on visual heritage) or Creative Unique Name" },
           age_estimate: { type: Type.STRING, description: "Estimated age (e.g. '25 years old')" },
-          nationality: { type: Type.STRING, description: "Estimated ethnic heritage/nationality" },
           archetype_anchor: { type: Type.STRING, description: "Broad category only (e.g. 'Young woman, commercial model aesthetic')" },
           facial_description: { type: Type.STRING, description: "MUST BE EMPTY STRING (SILENT)" },
           body_stack: { type: Type.STRING, description: "High density anatomical description: Somatotype, Bust, Waist, Hips, Glutes, Limbs." },
           realism_stack: { type: Type.STRING, description: "Camera physics tags: subsurface scattering, skin texture, etc." }
         },
-        required: ["uid", "age_estimate", "nationality", "archetype_anchor", "facial_description", "body_stack", "realism_stack"]
+        required: ["uid", "age_estimate", "archetype_anchor", "facial_description", "body_stack", "realism_stack"]
       }
     },
     required: ["identity_profile"]
@@ -271,11 +270,11 @@ export const generateDatasetPrompts = async (
   if (taskType === 'lora') {
     const BODY_STACK = subjectDescription;
     const REALISM_STACK = identity.backstory || "subsurface scattering, detailed skin texture, visible pores, faint skin sheen";
-    const ARCHETYPE = `${identity.age_estimate || "25yo"} ${identity.nationality || ""} ${identity.profession || "woman"}`.trim();
+    const ARCHETYPE = `${identity.age_estimate || "25yo"} ${identity.profession || "woman"}`.trim();
 
     let clothingDirective = "";
     if (safetyMode === 'nsfw') {
-      clothingDirective = `WARDROBE: ANATOMICAL/FIGURE-FORMING. Use technical terms: "second-skin fit", "anatomical seaming", "compressive". Clothing must trace the body.`;
+      clothingDirective = `WARDROBE: REVEALING & BOLD. Focus on skin exposure and body display. Keywords: Plunging, Cropped, Micro, Open Back, Cutouts, Bikini, Lingerie-style. BANNED: Sheer, Lace. MUST BE UNIQUE PER ITEM.`;
     } else {
       clothingDirective = `WARDROBE: SFW/MODEST. Casual, standard. MUST BE UNIQUE PER ITEM. VARY COLORS, CUTS, AND STYLES.`;
     }

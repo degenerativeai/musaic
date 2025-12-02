@@ -18,7 +18,6 @@ export interface PromptItem {
 export interface IdentityContext {
   name: string;
   age_estimate: string;
-  nationality: string;
   profession: string;
   backstory: string;
 } // Used for Realism Stack in LoRA mode
@@ -27,7 +26,6 @@ export interface AnalysisResult {
   identity_profile: {
     uid: string;
     age_estimate: string;
-    nationality: string;
     archetype_anchor: string;
     facial_description: string;
     body_stack: string;

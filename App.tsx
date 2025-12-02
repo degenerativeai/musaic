@@ -35,7 +35,6 @@ export default function App() {
     const [identity, setIdentity] = useState<IdentityContext>({
         name: '',
         age_estimate: '',
-        nationality: '',
         profession: '',
         backstory: ''
     });
@@ -169,7 +168,7 @@ export default function App() {
             setBodyshot(null);
             setProductImages([null, null, null]);
             setDescription('');
-            setIdentity({ name: '', age_estimate: '', nationality: '', profession: '', backstory: '' });
+            setIdentity({ name: '', age_estimate: '', profession: '', backstory: '' });
             setTargetTotal(50);
         }
         if (pendingTask) setTaskType(pendingTask);
@@ -222,7 +221,6 @@ export default function App() {
             const newIdentity = {
                 name: result.identity_profile.uid || 'Subject',
                 age_estimate: result.identity_profile.age_estimate || '',
-                nationality: result.identity_profile.nationality || '',
                 profession: result.identity_profile.archetype_anchor,
                 backstory: result.identity_profile.realism_stack
             };
@@ -444,15 +442,11 @@ export default function App() {
                                             <input type="text" value={identity.name} onChange={(e) => setIdentity({ ...identity, name: e.target.value })} placeholder="Auto-inferred..." className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Nationality</label>
-                                            <input type="text" value={identity.nationality} onChange={(e) => setIdentity({ ...identity, nationality: e.target.value })} placeholder="e.g. Japanese" className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div>
                                             <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Age</label>
                                             <input type="text" value={identity.age_estimate} onChange={(e) => setIdentity({ ...identity, age_estimate: e.target.value })} placeholder="e.g. 25yo" className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
                                         </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">{taskType === 'lora' ? 'Archetype' : 'Profession'}</label>
                                             <input type="text" value={identity.profession} onChange={(e) => setIdentity({ ...identity, profession: e.target.value })} placeholder={taskType === 'lora' ? "Young Woman" : "Influencer"} className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
