@@ -417,7 +417,7 @@ export default function App() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] uppercase font-bold text-gray-500">Full Body</label>
-                                            <div className={`relative h - 32 rounded - 2xl border - 2 overflow - hidden transition - all ${bodyshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'} `}>
+                                            <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${bodyshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'} `}>
                                                 {bodyshot ? (
                                                     <>
                                                         <img src={bodyshot} alt="Body" className="w-full h-full object-cover" />
@@ -432,7 +432,7 @@ export default function App() {
                                 )}
 
                                 {taskType !== 'ugc' && (
-                                    <button onClick={handleAnalyze} disabled={isAnalyzing || (!headshot && !bodyshot)} className={`w - full py - 3 rounded - xl font - bold uppercase text - xs tracking - widest transition - all flex items - center justify - center gap - 2 ${isAnalyzing ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-musaicPurple hover:to-blue-600 text-white shadow-lg'} `}>
+                                    <button onClick={handleAnalyze} disabled={isAnalyzing || (!headshot && !bodyshot)} className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-musaicPurple hover:to-blue-600 text-white shadow-lg'} `}>
                                         {isAnalyzing ? <><IconRefresh className="w-4 h-4 animate-spin" /> Analyzing...</> : <><IconSparkles className="w-4 h-4 text-musaicGold" /> Analyze Profile</>}
                                     </button>
                                 )}
@@ -465,7 +465,7 @@ export default function App() {
                                         <label className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2"><IconPackage className="w-4 h-4" /> Product Assets</label>
                                         <div className="flex gap-2">
                                             {[0, 1, 2].map((idx) => (
-                                                <div key={idx} className={`relative flex - 1 h - 20 rounded - xl border border - dashed border - gray - 700 bg - black / 20 overflow - hidden hover: border - gray - 500 transition - colors`}>
+                                                <div key={idx} className={`relative flex-1 h-20 rounded-xl border border-dashed border-gray-700 bg-black/20 overflow-hidden hover:border-gray-500 transition-colors`}>
                                                     {productImages[idx] ? (
                                                         <>
                                                             <img src={productImages[idx]!} className="w-full h-full object-cover" />
@@ -485,7 +485,7 @@ export default function App() {
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-musaicPurple"></span>Generation</h2>
                                     {taskType === 'lora' && (
-                                        <button onClick={() => setSafetyMode(safetyMode === 'sfw' ? 'nsfw' : 'sfw')} className={`px - 3 py - 1 rounded - full text - [10px] font - bold uppercase transition - all flex items - center gap - 1 border ${safetyMode === 'nsfw' ? 'bg-red-900/20 text-red-400 border-red-900/50 shadow-[0_0_10px_rgba(248,113,113,0.2)]' : 'bg-green-900/20 text-green-400 border-green-900/50'} `}>
+                                        <button onClick={() => setSafetyMode(safetyMode === 'sfw' ? 'nsfw' : 'sfw')} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all flex items-center gap-1 border ${safetyMode === 'nsfw' ? 'bg-red-900/20 text-red-400 border-red-900/50 shadow-[0_0_10px_rgba(248,113,113,0.2)]' : 'bg-green-900/20 text-green-400 border-green-900/50'} `}>
                                             {safetyMode === 'nsfw' ? <><IconFlame className="w-3 h-3" /> Accentuate Form</> : 'Standard Mode'}
                                         </button>
                                     )}
@@ -497,7 +497,7 @@ export default function App() {
                                     <div className="flex justify-between text-[10px] text-gray-600 font-mono"><span>10</span><span>100</span></div>
                                 </div>
 
-                                <button onClick={handleGenerateBatch} disabled={isGenerating || generatedCount >= targetTotal || (taskType !== 'ugc' && !description)} className={`w - full py - 4 rounded - xl font - bold uppercase text - sm tracking - widest transition - all shadow - xl hover: scale - [1.02] active: scale - [0.98] ${generatedCount >= targetTotal ? 'bg-green-600 text-white cursor-default' : isGenerating ? 'bg-gray-700 text-gray-400 cursor-wait' : 'bg-gradient-to-r from-musaicPurple to-blue-600 text-white hover:shadow-musaicPurple/25'} `}>
+                                <button onClick={handleGenerateBatch} disabled={isGenerating || generatedCount >= targetTotal || (taskType !== 'ugc' && !description)} className={`w-full py-4 rounded-xl font-bold uppercase text-sm tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] ${generatedCount >= targetTotal ? 'bg-green-600 text-white cursor-default' : isGenerating ? 'bg-gray-700 text-gray-400 cursor-wait' : 'bg-gradient-to-r from-musaicPurple to-blue-600 text-white hover:shadow-musaicPurple/25'} `}>
                                     {isGenerating ? <span className="flex items-center justify-center gap-2"><span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>Synthesizing...</span> : generatedCount >= targetTotal ? <span className="flex items-center justify-center gap-2"><IconCheck className="w-5 h-5" /> Complete</span> : `Generate ${Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount) === 0 ? '' : 'Next ' + Math.min(ITEMS_PER_PAGE, targetTotal - generatedCount)} `}
                                 </button>
 
