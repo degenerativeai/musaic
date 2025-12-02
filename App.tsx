@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { analyzeSubjectImages, generateDatasetPrompts } from './services/geminiService';
 import { PromptCard } from './components/PromptCard';
 import { SplashScreen } from './components/SplashScreen';
-import { IconSparkles, IconDownload, IconRefresh, IconProduct, IconFlame, IconArrowLeft, IconArrowRight, IconTrash, IconUser, IconHistory, IconPackage, IconPlus, IconMusaic, IconKey, IconCheck } from './components/Icons';
+import { IconSparkles, IconDownload, IconRefresh, IconProduct, IconFlame, IconArrowLeft, IconArrowRight, IconTrash, IconUser, IconHistory, IconPackage, IconPlus, IconMusaic, IconKey, IconCheck, IconEdit } from './components/Icons';
 import { PromptItem, TaskType, SafetyMode, IdentityContext, SavedInfluencer, UGCSettings } from './types';
 
 // Helper to read file as base64
@@ -369,7 +369,10 @@ export default function App() {
                         <div className="lg:col-span-4 space-y-8">
                             <div className="bg-charcoal border border-gray-800 rounded-2xl p-1 overflow-hidden flex shadow-lg">
                                 {(['lora', 'product', 'ugc'] as TaskType[]).map((t) => (
-                                    <button key={t} onClick={() => { if (taskType !== t) triggerResetFlow(t); }} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-all rounded-xl ${taskType === t ? 'bg-gradient-to-br from-gray-700 to-gray-800 text-white shadow-inner border border-gray-600' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'} `}>{t === 'ugc' ? 'UGC' : t}</button>
+                                    <button key={t} onClick={() => { if (taskType !== t) triggerResetFlow(t); }} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-all rounded-xl flex flex-col items-center justify-center gap-0.5 ${taskType === t ? 'bg-gradient-to-br from-gray-700 to-gray-800 text-white shadow-inner border border-gray-600' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'} `}>
+                                        <span>{t === 'ugc' ? 'UGC / Social' : t}</span>
+                                        {t === 'ugc' && <span className="text-[9px] opacity-60 font-normal normal-case tracking-normal">Lifestyle & Content</span>}
+                                    </button>
                                 ))}
                             </div>
 
@@ -380,6 +383,45 @@ export default function App() {
                                         <button onClick={() => setIsSelectingInfluencer(!isSelectingInfluencer)} className="text-[10px] text-musaicGold hover:underline flex items-center gap-1"><IconHistory className="w-3 h-3" />History</button>
                                     )}
                                 </div>
+
+                                {/* UGC SETTINGS */}
+                                {taskType === 'ugc' && (
+                                    <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-4 mb-6">
+                                        <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700/50 space-y-3">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <IconSparkles className="w-4 h-4 text-musaicPurple" />
+                                                <span className="text-xs font-bold uppercase text-gray-400 tracking-wider">Platform Optimization</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {['instagram', 'tiktok', 'youtube', 'linkedin', 'general'].map((p) => (
+                                                    <button
+                                                        key={p}
+                                                        onClick={() => setUgcSettings(prev => ({ ...prev, platform: p as any }))}
+                                                        className={`px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wide border transition-all ${ugcSettings.platform === p
+                                                            ? 'bg-musaicPurple/20 text-musaicPurple border-musaicPurple/50 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+                                                            : 'bg-gray-900/50 text-gray-500 border-gray-700 hover:border-gray-600 hover:text-gray-300'
+                                                            }`}
+                                                    >
+                                                        {p}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700/50 space-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <IconEdit className="w-4 h-4 text-blue-400" />
+                                                <span className="text-xs font-bold uppercase text-gray-400 tracking-wider">Custom Request</span>
+                                            </div>
+                                            <textarea
+                                                value={ugcSettings.customInstruction}
+                                                onChange={(e) => setUgcSettings(prev => ({ ...prev, customInstruction: e.target.value }))}
+                                                placeholder="E.g. 'Holding a coffee cup', 'Walking a dog', 'Golden hour selfie'..."
+                                                className="w-full bg-black/30 border border-gray-700 rounded-lg p-3 text-xs text-white placeholder-gray-600 focus:border-blue-500/50 outline-none resize-none h-20"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                 {isSelectingInfluencer && (
                                     <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700 space-y-2 mb-4">
