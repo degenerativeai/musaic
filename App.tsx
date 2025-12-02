@@ -369,7 +369,7 @@ export default function App() {
                         <div className="lg:col-span-4 space-y-8">
                             <div className="bg-charcoal border border-gray-800 rounded-2xl p-1 overflow-hidden flex shadow-lg">
                                 {(['lora', 'product', 'ugc'] as TaskType[]).map((t) => (
-                                    <button key={t} onClick={() => { if (taskType !== t) triggerResetFlow(t); }} className={`flex - 1 py - 3 text - xs font - bold uppercase tracking - wide transition - all rounded - xl ${taskType === t ? 'bg-gradient-to-br from-gray-700 to-gray-800 text-white shadow-inner border border-gray-600' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'} `}>{t === 'ugc' ? 'UGC' : t}</button>
+                                    <button key={t} onClick={() => { if (taskType !== t) triggerResetFlow(t); }} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wide transition-all rounded-xl ${taskType === t ? 'bg-gradient-to-br from-gray-700 to-gray-800 text-white shadow-inner border border-gray-600' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'} `}>{t === 'ugc' ? 'UGC' : t}</button>
                                 ))}
                             </div>
 
@@ -404,7 +404,7 @@ export default function App() {
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-2">
                                             <label className="text-[10px] uppercase font-bold text-gray-500">Headshot</label>
-                                            <div className={`relative h - 32 rounded - 2xl border - 2 overflow - hidden transition - all ${headshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'} `}>
+                                            <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${headshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'} `}>
                                                 {headshot ? (
                                                     <>
                                                         <img src={headshot} alt="Head" className="w-full h-full object-cover" />
