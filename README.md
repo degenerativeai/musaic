@@ -18,6 +18,21 @@ A high-fidelity prompt engineering suite designed to generate, refine, and struc
 - Tailwind CSS
 - Google Gemini API (`@google/genai`)
 
+## Desktop App (No Node.js Required)
+
+Musaic is available as a standalone desktop application for Windows. This allows you to run the application without installing Node.js or using the command line.
+
+**To get the installer:**
+1. Check the [Releases](https://github.com/your-username/musaic/releases) page for the latest `Musaic Setup.exe`.
+2. Download and run the installer.
+3. Musaic will launch automatically.
+
+**To build the installer locally:**
+```bash
+npm run electron:build
+```
+The installer will be generated in the `release` folder.
+
 ## Getting Started
 
 1. **Clone the repository**
