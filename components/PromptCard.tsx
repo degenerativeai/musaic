@@ -39,6 +39,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
 
     // Determine Mode
     const isLoRAMode = !!parsedContent?.generation_data;
+    const isVisionStruct = !!parsedContent?.subject_core && !!parsedContent?.atmosphere_and_context;
 
     // Dense Data (LoRA)
     const finalString = parsedContent?.generation_data?.final_prompt_string || (parsedContent?.subject ? `Hyper-realistic ${parsedContent.photography?.shot_type || 'Shot'}, ${parsedContent.subject.description || ''}, ${parsedContent.background?.setting || ''}, ${parsedContent.subject.clothing?.top?.type || ''} ${parsedContent.subject.clothing?.top?.color || ''}, ${parsedContent.subject.clothing?.bottom?.type || ''} ${parsedContent.subject.clothing?.bottom?.color || ''}, 8k, raw photo.` : prompt.text);
@@ -112,6 +113,94 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
             </div>
         );
     };
+
+    // --- VisionStruct Render ---
+    if (isVisionStruct) {
+        const core = parsedContent.subject_core;
+        const atm = parsedContent.atmosphere_and_context;
+        const details = parsedContent.anatomical_details;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const meta = parsedContent.meta;
+
+        return (
+            <div className="bg-black/40 border border-gray-800 rounded-xl overflow-hidden hover:border-gray-600 transition-all duration-300 group relative">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-gray-900 to-black px-4 py-3 border-b border-gray-800 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-indigo-900/50 flex items-center justify-center border border-indigo-500/30 text-indigo-400 font-mono text-xs">
+                            {prompt.generationMeta?.index || '#'}
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-gray-200 tracking-wide uppercase">{prompt.generationMeta?.type || 'SCENE MATCH'}</span>
+                                <span className="px-1.5 py-0.5 rounded bg-indigo-900/30 border border-indigo-500/20 text-[9px] text-indigo-300 font-mono">
+                                    {meta?.visual_fidelity || 'High Fidelity'}
+                                </span>
+                            </div>
+                            <div className="text-[10px] text-gray-500 font-mono mt-0.5">
+                                {prompt.generationMeta?.label || 'Forensic Analysis'}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <button onClick={handleCopy} className={`p-1.5 rounded-lg transition-all ${isCopied ? 'bg-green-900/30 text-green-400' : 'hover:bg-gray-800 text-gray-500 hover:text-white'}`}>
+                            {isCopied ? <IconCheck className="w-3.5 h-3.5" /> : <IconCopy className="w-3.5 h-3.5" />}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Content Grid */}
+                <div className="p-4 grid grid-cols-1 gap-4">
+
+                    {/* Subject Core */}
+                    <div className="space-y-2">
+                        <SectionHeader title="Subject Core" colorClass="text-indigo-400" icon={<IconUser className="w-3 h-3 text-indigo-500" />} />
+                        <div className="bg-black/20 rounded-lg p-3 border border-gray-800/50 space-y-2">
+                            <div className="text-xs text-gray-300 leading-relaxed"><span className="text-indigo-400/70 font-bold uppercase text-[10px] mr-2">Identity:</span>{core?.identity}</div>
+                            <div className="text-xs text-gray-300 leading-relaxed"><span className="text-indigo-400/70 font-bold uppercase text-[10px] mr-2">Styling:</span>{core?.styling}</div>
+                            {core?.imperfections && (
+                                <div className="mt-2 pt-2 border-t border-indigo-500/10">
+                                    <span className="text-[10px] text-indigo-400/70 block mb-1 font-bold uppercase">Imperfections</span>
+                                    <p className="text-[10px] text-gray-400 leading-tight">
+                                        {core.imperfections.skin && <span className="mr-2">Skin: {core.imperfections.skin}</span>}
+                                        {core.imperfections.hair && <span className="mr-2">Hair: {core.imperfections.hair}</span>}
+                                        {core.imperfections.general && <span>General: {core.imperfections.general}</span>}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Atmosphere */}
+                    <div className="space-y-2">
+                        <SectionHeader title="Atmosphere & Context" colorClass="text-amber-400" icon={<IconSettings className="w-3 h-3 text-amber-500" />} />
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="bg-black/20 rounded-lg p-2 border border-gray-800/50">
+                                <div className="text-[9px] text-amber-500/70 font-bold uppercase mb-1">Lighting</div>
+                                <div className="text-[10px] text-gray-400 leading-snug">{atm?.lighting_source}</div>
+                            </div>
+                            <div className="bg-black/20 rounded-lg p-2 border border-gray-800/50">
+                                <div className="text-[9px] text-amber-500/70 font-bold uppercase mb-1">Mood</div>
+                                <div className="text-[10px] text-gray-400 leading-snug">{atm?.mood}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Details (Collapsible-ish or just small) */}
+                    <div className="space-y-2">
+                        <SectionHeader title="Anatomical Details" colorClass="text-emerald-400" icon={<IconCheck className="w-3 h-3 text-emerald-500" />} />
+                        <div className="bg-black/20 rounded-lg p-3 border border-gray-800/50 grid grid-cols-2 gap-x-4 gap-y-2">
+                            <KeyVal label="Hands" val={details?.hands_and_fingers} />
+                            <KeyVal label="Head" val={details?.head_and_gaze} />
+                            <KeyVal label="Limbs" val={details?.limb_placement} />
+                            <KeyVal label="Posture" val={details?.posture_and_spine} />
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`group relative bg-charcoal border rounded-xl p-0 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-black/60 ${isCopied
@@ -233,6 +322,16 @@ export const PromptCard: React.FC<PromptCardProps> = ({ prompt, onUpdate, onTogg
                                         <KeyVal label="Angle" val={photography?.angle} />
                                         <KeyVal label="Device" val={photography?.camera_style} />
                                     </div>
+
+                                    {/* Tech Specs (Realism) */}
+                                    {parsedContent.tech_specs && (
+                                        <div className="bg-cyan-900/10 border border-cyan-500/20 rounded-lg p-3">
+                                            <SectionHeader title="Tech Specs" colorClass="text-cyan-400 border-cyan-500" icon={<IconSettings className="w-3 h-3 text-cyan-400" />} />
+                                            <KeyVal label="Physics" val={parsedContent.tech_specs.camera_physics} />
+                                            <KeyVal label="Sensor" val={parsedContent.tech_specs.sensor_fidelity} />
+                                            <KeyVal label="Lighting" val={parsedContent.tech_specs.lighting_physics} />
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         )}

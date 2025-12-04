@@ -36,6 +36,8 @@ export interface AnalysisResult {
 export interface UGCSettings {
   platform: 'instagram' | 'tiktok' | 'youtube' | 'linkedin' | 'general';
   customInstruction: string;
+  modelId: string;
+  mode?: 'social_prompt';
 }
 
 export interface SavedInfluencer {
@@ -52,3 +54,41 @@ export interface GeneratorState {
   generatedCount: number;
   error: string | null;
 }
+
+// VisionStruct Ultra Schema
+export interface VisionStruct {
+  meta: {
+    medium: string;
+    visual_fidelity: string;
+  };
+  atmosphere_and_context: {
+    mood: string;
+    lighting_source: string;
+    shadow_play: string;
+  };
+  subject_core: {
+    identity: string;
+    styling: string;
+  };
+  anatomical_details: {
+    posture_and_spine: string;
+    limb_placement: string;
+    hands_and_fingers: string;
+    head_and_gaze: string;
+  };
+  attire_mechanics: {
+    garments: string;
+    fit_and_physics: string;
+  };
+  environment_and_depth: {
+    background_elements: string;
+    surface_interactions: string;
+  };
+  image_texture: {
+    quality_defects: string;
+    camera_characteristics: string;
+  };
+}
+
+export type UGCMode = 'replicator' | 'injector' | 'creator';
+
