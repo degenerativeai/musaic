@@ -1639,7 +1639,7 @@ npm error code ETARGET
 npm error notarget No matching version found for @google/genai@^0.1.1.
 npm error notarget In most cases you or one of your dependencies are requesting
 npm error notarget a package version that doesn't exist.
-npm error A complete log of this run can be found in: C:\Users\richgates\AppData\Local\npm-cache_logs\2025-11-30T10_54_16_288Z-debug-0.log
+npm error A complete log of this run can be found in: C:\Users\degenerativeai\AppData\Local\npm-cache_logs\2025-11-30T10_54_16_288Z-debug-0.log
 Gemini 3 Pro Preview
 Ran for 78s
 lightbulb
@@ -1670,7 +1670,7 @@ npm error code ETARGET
 npm error notarget No matching version found for @google/genai@^0.1.1.
 npm error notarget In most cases you or one of your dependencies are requesting
 npm error notarget a package version that doesn't exist.
-npm error A complete log of this run can be found in: C:\Users\richgates\AppData\Local\npm-cache_logs\2025-11-30T10_59_51_555Z-debug-0.log
+npm error A complete log of this run can be found in: C:\Users\degenerativeai\AppData\Local\npm-cache_logs\2025-11-30T10_59_51_555Z-debug-0.log
 Gemini 3 Pro Preview
 Ran for 81s
 lightbulb
