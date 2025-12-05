@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { IconMusaic, IconKey, IconArrowRight } from './Icons';
 
+import appLogo from '../assets/app-logo.png';
+
 interface SplashScreenProps {
   onComplete: (key: string | null) => void;
 }
@@ -30,7 +32,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         {/* Logo Section */}
         <div className="flex flex-col items-center gap-4 group cursor-default">
           <img
-            src="/splash.png"
+            src={appLogo}
             alt="Musaic"
             className="w-64 h-64 object-contain filter drop-shadow-[0_0_15px_rgba(139,92,246,0.3)] animate-pulse-slow mix-blend-screen"
           />
