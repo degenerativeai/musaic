@@ -17,7 +17,7 @@ const fileToBase64 = (file: File): Promise<string> => {
 
 const ITEMS_PER_PAGE = 10;
 const STORAGE_KEY_INFLUENCERS = 'visionstruct_influencers';
-const STORAGE_KEY_DRAFT = 'musaic_draft_state';
+const STORAGE_KEY_DRAFT = 'musaic_draft_state_v2';
 
 export default function App() {
     // --- Auth State ---
@@ -31,7 +31,9 @@ export default function App() {
     const [ugcSettings, setUgcSettings] = useState<UGCSettings>({ platform: 'instagram', customInstruction: '', modelId: 'gemini-2.5-flash' });
     const [ugcCustomInstruction, setUgcCustomInstruction] = useState('');
     const [safetyMode, setSafetyMode] = useState<SafetyMode>('sfw');
-    const [targetTotal, setTargetTotal] = useState(25);
+    const [taskTargets, setTaskTargets] = useState<{ [key in TaskType]: number }>({ lora: 100, product: 25, ugc: 5 });
+    const targetTotal = taskTargets[taskType];
+    const setTargetTotal = (val: number) => setTaskTargets(prev => ({ ...prev, [taskType]: val }));
 
     // --- Context State ---
     const [description, setDescription] = useState(''); // Body Stack / Physical Profile
@@ -97,10 +99,10 @@ export default function App() {
 
     useEffect(() => {
         if (!showSplash) {
-            const draft = { taskType, safetyMode, targetTotal, description, identity };
+            const draft = { taskType, safetyMode, taskTargets, description, identity };
             localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(draft));
         }
-    }, [taskType, safetyMode, targetTotal, description, identity, showSplash]);
+    }, [taskType, safetyMode, taskTargets, description, identity, showSplash]);
 
     useEffect(() => {
         const saved = localStorage.getItem(STORAGE_KEY_DRAFT);
@@ -109,7 +111,7 @@ export default function App() {
                 const parsed = JSON.parse(saved);
                 if (parsed.taskType) setTaskType(parsed.taskType);
                 if (parsed.safetyMode) setSafetyMode(parsed.safetyMode);
-                if (parsed.targetTotal) setTargetTotal(parsed.targetTotal);
+                if (parsed.taskTargets) setTaskTargets(parsed.taskTargets);
                 if (parsed.description) setDescription(parsed.description);
                 if (parsed.identity) setIdentity(parsed.identity);
             } catch (e) { console.error("Failed to restore draft", e); }
@@ -185,7 +187,8 @@ export default function App() {
             setProductImages([null, null, null]);
             setDescription('');
             setIdentity({ name: '', age_estimate: '', profession: '', backstory: '' });
-            setTargetTotal(25);
+            setIdentity({ name: '', age_estimate: '', profession: '', backstory: '' });
+            setTaskTargets({ lora: 100, product: 25, ugc: 5 });
         }
         if (pendingTask) setTaskType(pendingTask);
         setPendingTask(null);
@@ -912,8 +915,8 @@ export default function App() {
                                 {taskType !== 'ugc' && (
                                     <div className="space-y-3">
                                         <div className="flex justify-between text-xs font-mono text-gray-400"><span>Target Count</span><span className="text-white">{targetTotal} Prompts</span></div>
-                                        <input type="range" min="1" max="25" step="1" value={targetTotal} onChange={(e) => setTargetTotal(Number(e.target.value))} className="w-full" />
-                                        <div className="flex justify-between text-[10px] text-gray-600 font-mono"><span>1</span><span>25</span></div>
+                                        <input type="range" min="10" max="100" step="1" value={targetTotal} onChange={(e) => setTargetTotal(Number(e.target.value))} className="w-full" />
+                                        <div className="flex justify-between text-[10px] text-gray-600 font-mono"><span>10</span><span>100</span></div>
                                     </div>
                                 )}
 
