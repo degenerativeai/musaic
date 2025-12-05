@@ -1,3 +1,24 @@
+# Release Notes v1.1 - The "Nano Banana" Update
+
+**Summary**
+This release shifts the default generation engine to Google's Nano Banana Pro for enhanced speed and fidelity, while also delivering a complete overhaul of the project documentation and branding.
+
+## ⚡ Core Changes
+*   **Default Provider Update**: Switched default image generator to **Google (Nano Banana Pro)**.
+*   **Nano Banana Pro Integration**: Explicitly labeled and configured the UI to reflect the Pro model tier.
+*   **Security Hardening**: Audited and secured API key handling in the frontend.
+
+## 📚 Documentation & Branding
+*   **Architectural Overhaul**: rewritten `README.md` with "VisionStruct", "Silent Face Protocol", and "Vacuum Compiler" terminology.
+*   **Visual Logic**: Added ASCII-style architectural diagrams to explain the compilation flow.
+*   **Branding**: Updated visual identity and repository metadata.
+
+## 🛠️ Fixes
+*   **File Locking**: Resolved Windows file locking issues during documentation updates.
+*   **Dependencies**: Cleaned up dev dependencies and build scripts.
+
+---
+
 # Release Notes - UGC Refinement & Social Mode
 
 ## New Features

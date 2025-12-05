@@ -96,9 +96,9 @@ CharacterName_Batch_Date.zip
 ---
 
 ## 🔑 API Key Security
-- **No Backend Storage**: Your key is stored ONLY in `sessionStorage`.
-- **Ephemeral**: Closing the tab wipes the key.
-- **Direct**: The key is sent only to Google/Wavespeed endpoints.
+- **Client-Side Only**: Musaic runs entirely in your local browser/machine. There is NO middleman server.
+- **Direct Connection**: Your API key is sent directly from your machine to Google or Wavespeed.
+- **Ephemeral Storage**: Keys are stored exclusively in `sessionStorage` and are **permanently wiped** when you close the tab or window.
 
 ## 💰 Cost
 - **Google Gemini**:  Usage-based pricing (Free tier rate limits are too low for batching). **Requires Pay-as-you-go key.**

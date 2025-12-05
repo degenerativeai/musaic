@@ -104,12 +104,12 @@ ipcMain.handle('api-request', async (event, { url, options }) => {
         const text = await response.text();
         let data;
         try {
+            // data = JSON.parse(text);
+            // console.log("API Proxy Response Data:", JSON.stringify(data).substring(0, 500) + "...");
             data = JSON.parse(text);
-            // Log the data keys or a snippet to help debug
-            console.log("API Proxy Response Data:", JSON.stringify(data).substring(0, 500) + "...");
         } catch (e) {
             data = text;
-            console.log("API Proxy Response Text:", text.substring(0, 500) + "...");
+            // console.log("API Proxy Response Text:", text.substring(0, 500) + "...");
         }
 
         return {
