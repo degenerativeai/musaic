@@ -43,7 +43,7 @@ export default function App() {
     // --- Image Generation State ---
     const [workflowMode, setWorkflowMode] = useState<'manual' | 'api'>('manual');
     const [generationMode, setGenerationMode] = useState<'dataset' | 'image'>('dataset');
-    const [imageProvider, setImageProvider] = useState<ImageProvider>('wavespeed');
+    const [imageProvider, setImageProvider] = useState<ImageProvider>('google');
     const [aspectRatio, setAspectRatio] = useState<ImageAspect>('1:1');
     const [resolution, setResolution] = useState<'2k' | '4k'>('2k'); // Default to 2k (Standard)
 
@@ -1240,7 +1240,7 @@ export default function App() {
                                                 <div>
                                                     <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Provider</label>
                                                     <select value={imageProvider} onChange={(e) => setImageProvider(e.target.value as ImageProvider)} className="w-full bg-black/30 border border-gray-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-musaicGold [&>option]:bg-gray-900 [&>option]:text-white">
-                                                        <option value="google">Google (Nano Banana)</option>
+                                                        <option value="google">Google (Nano Banana Pro)</option>
                                                         <option value="wavespeed">Wavespeed</option>
                                                     </select>
                                                 </div>
