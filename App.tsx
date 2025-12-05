@@ -8,6 +8,7 @@ import { SplashScreen } from './components/SplashScreen';
 import { IconSparkles, IconDownload, IconRefresh, IconProduct, IconFlame, IconArrowLeft, IconArrowRight, IconTrash, IconUser, IconHistory, IconPackage, IconPlus, IconKey, IconCheck, IconEdit } from './components/Icons';
 
 import { PromptItem, TaskType, SafetyMode, IdentityContext, SavedInfluencer, UGCSettings, UGCMode, VisionStruct } from './types';
+import appLogo from './assets/app-logo.png';
 
 // Helper to read file as base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -679,7 +680,7 @@ export default function App() {
 
         await Promise.all(batchPrompts.map(async (p) => {
             try {
-                const hasRefs = [headshot, bodyshot].filter(Boolean).length > 0;
+                const hasRefs = (taskType !== 'ugc' || ugcGenerationType === 'inject') && [headshot, bodyshot].filter(Boolean).length > 0;
                 let finalPrompt = p.text;
 
                 if (hasRefs) {
@@ -790,7 +791,7 @@ export default function App() {
 
                     <header className="fixed top-0 left-0 right-0 h-16 bg-charcoal/80 backdrop-blur-md border-b border-gray-800 z-40 flex items-center justify-between px-6">
                         <div className="flex items-center gap-3">
-                            <img src="splash.png" alt="Musaic" className="w-12 h-12 object-contain filter drop-shadow-md mix-blend-screen" />
+                            <img src={appLogo} alt="Musaic" className="w-12 h-12 object-contain filter drop-shadow-md mix-blend-screen" />
                             <h1 className="text-xl font-bold tracking-tighter bg-gradient-to-r from-musaicGold to-musaicPurple bg-clip-text text-transparent">MUSAIC</h1>
                         </div>
 
@@ -1150,74 +1151,78 @@ export default function App() {
                                         </button>
                                     </div>
 
-                                    {/* Reference Images (Shared) */}
-                                    <div className="space-y-3">
-                                        <div className="bg-blue-900/20 border border-blue-900/50 p-3 rounded-lg flex gap-3">
-                                            <IconUser className="w-5 h-5 text-blue-400 shrink-0" />
-                                            <div>
-                                                <p className="text-xs font-bold text-blue-200 uppercase tracking-wide">Context References</p>
-                                                <p className="text-[10px] text-gray-400 leading-relaxed">Provide a clear Headshot for facial identity and a Full Body shot for physique/style. The AI uses these to maintain consistency across the dataset.</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] uppercase font-bold text-gray-500">Headshot</label>
-                                                <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${headshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'} `}>
-                                                    {headshot ? (
-                                                        <>
-                                                            <img src={headshot} alt="Head" className="w-full h-full object-cover" />
-                                                            <button onClick={() => setHeadshot(null)} className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-red-500/80 transition-colors"><IconTrash className="w-3 h-3" /></button>
-                                                        </>
-                                                    ) : (
-                                                        <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer"><IconUser className="w-6 h-6 text-gray-600 mb-1" /><span className="text-[9px] text-gray-500">Upload</span><input type="file" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleImageUpload(e, 'head')} className="hidden" /></label>
-                                                    )}
+                                    {/* Reference Images (Shared - Hidden in UGC) */}
+                                    {taskType !== 'ugc' && (
+                                        <div className="space-y-3 animate-fade-in">
+                                            <div className="bg-blue-900/20 border border-blue-900/50 p-3 rounded-lg flex gap-3">
+                                                <IconUser className="w-5 h-5 text-blue-400 shrink-0" />
+                                                <div>
+                                                    <p className="text-xs font-bold text-blue-200 uppercase tracking-wide">Context References</p>
+                                                    <p className="text-[10px] text-gray-400 leading-relaxed">Provide a clear Headshot for facial identity and a Full Body shot for physique/style. The AI uses these to maintain consistency across the dataset.</p>
                                                 </div>
                                             </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] uppercase font-bold text-gray-500">Full Body</label>
-                                                <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${bodyshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'} `}>
-                                                    {bodyshot ? (
-                                                        <>
-                                                            <img src={bodyshot} alt="Body" className="w-full h-full object-cover" />
-                                                            <button onClick={() => setBodyshot(null)} className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-red-500/80 transition-colors"><IconTrash className="w-3 h-3" /></button>
-                                                        </>
-                                                    ) : (
-                                                        <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer"><IconUser className="w-6 h-6 text-gray-600 mb-1" /><span className="text-[9px] text-gray-500">Upload</span><input type="file" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleImageUpload(e, 'body')} className="hidden" /></label>
-                                                    )}
+
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] uppercase font-bold text-gray-500">Headshot</label>
+                                                    <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${headshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'} `}>
+                                                        {headshot ? (
+                                                            <>
+                                                                <img src={headshot} alt="Head" className="w-full h-full object-cover" />
+                                                                <button onClick={() => setHeadshot(null)} className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-red-500/80 transition-colors"><IconTrash className="w-3 h-3" /></button>
+                                                            </>
+                                                        ) : (
+                                                            <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer"><IconUser className="w-6 h-6 text-gray-600 mb-1" /><span className="text-[9px] text-gray-500">Upload</span><input type="file" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleImageUpload(e, 'head')} className="hidden" /></label>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] uppercase font-bold text-gray-500">Full Body</label>
+                                                    <div className={`relative h-32 rounded-2xl border-2 overflow-hidden transition-all ${bodyshot ? 'border-musaicPurple' : 'border-dashed border-gray-700 hover:border-gray-500 bg-black/20'} `}>
+                                                        {bodyshot ? (
+                                                            <>
+                                                                <img src={bodyshot} alt="Body" className="w-full h-full object-cover" />
+                                                                <button onClick={() => setBodyshot(null)} className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-red-500/80 transition-colors"><IconTrash className="w-3 h-3" /></button>
+                                                            </>
+                                                        ) : (
+                                                            <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer"><IconUser className="w-6 h-6 text-gray-600 mb-1" /><span className="text-[9px] text-gray-500">Upload</span><input type="file" accept="image/png, image/jpeg, image/webp" onChange={(e) => handleImageUpload(e, 'body')} className="hidden" /></label>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
 
-                                    {/* Analyze Button */}
-                                    <button onClick={handleAnalyze} disabled={isAnalyzing || (!headshot && !bodyshot)} className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-musaicPurple hover:to-blue-600 text-white shadow-lg'} `}>
-                                        {isAnalyzing ? <><IconRefresh className="w-4 h-4 animate-spin" /> Analyzing...</> : <><IconSparkles className="w-4 h-4 text-musaicGold" /> Analyze Profile</>}
-                                    </button>
+                                            {/* Analyze Button */}
+                                            <button onClick={handleAnalyze} disabled={isAnalyzing || (!headshot && !bodyshot)} className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2 ${isAnalyzing ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-gray-700 to-gray-800 hover:from-musaicPurple hover:to-blue-600 text-white shadow-lg'} `}>
+                                                {isAnalyzing ? <><IconRefresh className="w-4 h-4 animate-spin" /> Analyzing...</> : <><IconSparkles className="w-4 h-4 text-musaicGold" /> Analyze Profile</>}
+                                            </button>
+                                        </div>
+                                    )}
 
-                                    {/* Identity Details & Reset */}
-                                    <div className="space-y-3 pt-2">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Name</label>
-                                                <input type="text" value={identity.name} onChange={(e) => setIdentity({ ...identity, name: e.target.value })} placeholder="Auto-inferred..." className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
+                                    {/* Identity Details & Reset (Hidden in UGC) */}
+                                    {taskType !== 'ugc' && (
+                                        <div className="space-y-3 pt-2 animate-fade-in">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Name</label>
+                                                    <input type="text" value={identity.name} onChange={(e) => setIdentity({ ...identity, name: e.target.value })} placeholder="Auto-inferred..." className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Age</label>
+                                                    <input type="text" value={identity.age_estimate} onChange={(e) => setIdentity({ ...identity, age_estimate: e.target.value })} placeholder="e.g. 25yo" className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">{taskType === 'lora' ? 'Archetype' : 'Profession'}</label>
+                                                    <input type="text" value={identity.profession} onChange={(e) => setIdentity({ ...identity, profession: e.target.value })} placeholder={taskType === 'lora' ? "Young Woman" : "Influencer"} className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
+                                                </div>
                                             </div>
                                             <div>
-                                                <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Age</label>
-                                                <input type="text" value={identity.age_estimate} onChange={(e) => setIdentity({ ...identity, age_estimate: e.target.value })} placeholder="e.g. 25yo" className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
+                                                <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">{taskType === 'lora' ? 'Realism Stack' : 'Backstory / Vibe'}</label>
+                                                <textarea value={identity.backstory} onChange={(e) => setIdentity({ ...identity, backstory: e.target.value })} placeholder={taskType === 'lora' ? "Realism tags..." : "A brief backstory..."} rows={4} className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none resize-none" />
                                             </div>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">{taskType === 'lora' ? 'Archetype' : 'Profession'}</label>
-                                                <input type="text" value={identity.profession} onChange={(e) => setIdentity({ ...identity, profession: e.target.value })} placeholder={taskType === 'lora' ? "Young Woman" : "Influencer"} className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">{taskType === 'lora' ? 'Realism Stack' : 'Backstory / Vibe'}</label>
-                                            <textarea value={identity.backstory} onChange={(e) => setIdentity({ ...identity, backstory: e.target.value })} placeholder={taskType === 'lora' ? "Realism tags..." : "A brief backstory..."} rows={4} className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none resize-none" />
-                                        </div>
-                                    </div>
+                                    )}
 
                                     {/* Workflow Specific: Manual */}
                                     {workflowMode === 'manual' && (

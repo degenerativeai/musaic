@@ -2,7 +2,7 @@
   "name": "musaic-dataset-architect",
   "author": "degenerativeai",
   "private": false,
-  "version": "1.1.2",
+  "version": "1.1.4",
   "type": "module",
   "description": "A high-fidelity prompt engineering suite designed to generate, refine, and structure realistic datasets for AI training and evaluation.",
   "main": "electron/main.cjs",

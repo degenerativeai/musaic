@@ -44,3 +44,19 @@ This maintenance release focuses on security hardening and privacy, alongside th
 ## Bug Fixes
 *   **Repetition Loop**: Fixed an issue where the AI would generate repetitive, philosophical text in the identity field.
 *   **Stability**: Improved JSON parsing and added loading states.
+
+---
+
+# Release Notes v1.1.4 - Stability & UX Polish
+
+## 🐛 Bug Fixes & Regressions
+*   **Electron Logo Fix (v1.1.4)**: Resolved persistent issue with the app logo not loading in the production build by properly importing it as a bundled asset.
+*   **UGC Tab Logic (v1.1.3)**:
+    *   Fixed a UI regression where LoRA-specific components (Headshot/Bodyshot upload) were leaking into the UGC tab.
+    *   Updated "Replicate" logic to prevent accidental stripping of facial features when hidden reference fields contained data.
+*   **AI Robustness (v1.1.2)**:
+    *   **JSON Parsing**: Added aggressive markdown stripping to handle Gemini API responses that wrap JSON in code blocks (```json), fixing the "AI Response Malformed" error during batch generation.
+
+## 📦 Build
+*   **Version**: 1.1.4
+*   **Platform**: Windows (x64)
