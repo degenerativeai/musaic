@@ -696,13 +696,25 @@ export const generateDatasetPrompts = async (
     });
 
     const rawData = (() => {
+      const text = response.text || "[]";
       try {
-        return JSON.parse(response.text || "[]");
+        return JSON.parse(text);
       } catch (e) {
-        console.error("JSON Parse Failure. Response Length:", response.text?.length);
-        console.error("Snippet:", response.text?.substring(0, 500) + "...");
-        console.error("End Snippet:", response.text?.substring((response.text?.length || 0) - 500));
-        throw new Error(`AI Response Malformed (Length: ${response.text?.length}). Try reducing Batch Size.`);
+        // Try to strip markdown
+        if (text.includes("```")) {
+          const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (match) {
+            try {
+              return JSON.parse(match[1]);
+            } catch (e2) {
+              // recursive fail
+            }
+          }
+        }
+
+        console.error("JSON Parse Failure. Response Length:", text.length);
+        console.error("Snippet:", text.substring(0, 500) + "...");
+        throw new Error(`AI Response Malformed (Length: ${text.length}). Try reducing Batch Size.`);
       }
     })();
 

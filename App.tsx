@@ -790,7 +790,7 @@ export default function App() {
 
                     <header className="fixed top-0 left-0 right-0 h-16 bg-charcoal/80 backdrop-blur-md border-b border-gray-800 z-40 flex items-center justify-between px-6">
                         <div className="flex items-center gap-3">
-                            <img src="/splash.png" alt="Musaic" className="w-12 h-12 object-contain filter drop-shadow-md mix-blend-screen" />
+                            <img src="splash.png" alt="Musaic" className="w-12 h-12 object-contain filter drop-shadow-md mix-blend-screen" />
                             <h1 className="text-xl font-bold tracking-tighter bg-gradient-to-r from-musaicGold to-musaicPurple bg-clip-text text-transparent">MUSAIC</h1>
                         </div>
 

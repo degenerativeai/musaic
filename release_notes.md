@@ -1,12 +1,16 @@
-# Release Notes v1.1 - The "Nano Banana" Update
+# Release Notes v1.1.1 - Security & Architecture Update
 
 **Summary**
-This release shifts the default generation engine to Google's Nano Banana Pro for enhanced speed and fidelity, while also delivering a complete overhaul of the project documentation and branding.
+This maintenance release focuses on security hardening and privacy, alongside the transition to the Nano Banana Pro engine.
+
+## 🔒 Security & Privacy
+*   **Content Security Policy (CSP)**: Implemented strict CSP in `index.html` to allow only whitelisted API endpoints (Google & Wavespeed).
+*   **Data Leak Prevention**: Removed verbose debug logging in the Electron main process to ensure user prompts and API responses are never written to local logs or consoles.
+*   **Ephemeral Keys**: Updated documentation to strictly clarify that API keys are client-side only and wiped on session close.
 
 ## ⚡ Core Changes
 *   **Default Provider Update**: Switched default image generator to **Google (Nano Banana Pro)**.
 *   **Nano Banana Pro Integration**: Explicitly labeled and configured the UI to reflect the Pro model tier.
-*   **Security Hardening**: Audited and secured API key handling in the frontend.
 
 ## 📚 Documentation & Branding
 *   **Architectural Overhaul**: rewritten `README.md` with "VisionStruct", "Silent Face Protocol", and "Vacuum Compiler" terminology.
@@ -14,8 +18,8 @@ This release shifts the default generation engine to Google's Nano Banana Pro fo
 *   **Branding**: Updated visual identity and repository metadata.
 
 ## 🛠️ Fixes
-*   **File Locking**: Resolved Windows file locking issues during documentation updates.
-*   **Dependencies**: Cleaned up dev dependencies and build scripts.
+*   **File Locking**: Resolved Windows file locking issues.
+*   **Dependencies**: Cleaned up dev dependencies.
 
 ---
 
