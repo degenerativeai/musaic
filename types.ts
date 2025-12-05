@@ -1,4 +1,6 @@
 
+declare module '*.png';
+
 export type TaskType = 'lora' | 'product' | 'ugc';
 export type SafetyMode = 'sfw' | 'nsfw';
 
@@ -90,5 +92,22 @@ export interface VisionStruct {
   };
 }
 
+
 export type UGCMode = 'replicator' | 'injector' | 'creator';
 
+export interface WavespeedResponse {
+  ok: boolean;
+  b64_json?: string; // Standard format for image data
+  url?: string;      // If they return a URL
+  error?: string;
+}
+
+export interface WavespeedRequest {
+  model_id: string; // "nano-banana-pro"
+  prompt: string;
+  negative_prompt?: string;
+  width?: number;
+  height?: number;
+  num_inference_steps?: number;
+  guidance_scale?: number;
+}

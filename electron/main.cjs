@@ -67,6 +67,63 @@ function createWindow() {
     });
 }
 
+// IPC Handler for saving images
+ipcMain.handle('save-image', async (event, { filename, base64Data, subfolder }) => {
+    try {
+        const documentsPath = app.getPath('documents');
+        // If subfolder provided, append it. Sanitize it slightly to prevent directory traversal up?
+        // path.join handles '..' somewhat, but standard usage is just a name.
+        const safeSub = (subfolder || '').replace(/[\\/:]/g, '_'); // Replace path separators in the name itself
+        const saveDir = subfolder
+            ? path.join(documentsPath, 'Musaic', 'Output', safeSub)
+            : path.join(documentsPath, 'Musaic', 'Output');
+
+        const fs = require('fs');
+        if (!fs.existsSync(saveDir)) {
+            fs.mkdirSync(saveDir, { recursive: true });
+        }
+
+        const filePath = path.join(saveDir, filename);
+        const buffer = Buffer.from(base64Data, 'base64');
+        fs.writeFileSync(filePath, buffer);
+
+        return { success: true, path: filePath };
+    } catch (error) {
+        console.error("Failed to save image:", error);
+        return { success: false, error: error.message };
+    }
+});
+
+// IPC Handler for API Proxy (Bypasses CORS)
+ipcMain.handle('api-request', async (event, { url, options }) => {
+    try {
+        console.log(`Proxying request to: ${url}`);
+        const response = await fetch(url, options);
+
+        // We need to consume the body before sending back to renderer
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+            // Log the data keys or a snippet to help debug
+            console.log("API Proxy Response Data:", JSON.stringify(data).substring(0, 500) + "...");
+        } catch (e) {
+            data = text;
+            console.log("API Proxy Response Text:", text.substring(0, 500) + "...");
+        }
+
+        return {
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            data: data
+        };
+    } catch (error) {
+        console.error("API Proxy Error:", error);
+        return { ok: false, error: error.message };
+    }
+});
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {

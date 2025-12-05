@@ -49,7 +49,7 @@ PHASE 1: VISIONSTRUCT ANALYSIS
 Analyze images and generate an Internal Identity Profile.
 CRITICAL CONSTRAINT: 
 - facial_description: MUST REMAIN EMPTY/SILENT.
-- body_stack: High density anatomical description (Somatotype, Measurements, Tones).
+- body_stack: High density anatomical description (Somatotype, Measurements, Tones). STRICTLY NO CLOTHING OR ACCESSORIES.
 `;
 
 const VACUUM_COMPILER_DIRECTIVE = `
@@ -147,7 +147,7 @@ You are VisionStruct Ultra, a forensic-level computer vision analyst. Your goal 
     "identity": "CRITICAL: Ethnicity/Heritage (be specific), Age, Eye Color (e.g. 'amber', 'hazel'), Eye Shape, Body Morphology. IF CELEBRITY RECOGNIZED: Explicitly name them (e.g. 'an adult woman that looks just like Sydney Sweeney') to lock likeness.",
     "styling": "Hair texture/style, makeup details, skin finish (matte/dewy).",
     "imperfections": {
-        "skin": "Texture, pores, flush, moles, freckles, scars.",
+        "skin": "Texture, pores, flush, freckles, scars.",
         "hair": "Flyaways, messy strands, frizz, baby hairs.",
         "general": "Sweat, creases, lint, dust, asymmetry."
     }
@@ -310,7 +310,8 @@ export const analyzeSubjectImages = async (
     text: `${LORA_FORGE_DIRECTIVE}
     
     TASK: Analyze the provided images and generate the Identity Profile.
-    REMEMBER: Facial Description must be SILENT (Empty). Body Stack must be LOUD (Detailed).
+    REMEMBER: Facial Description must be SILENT (Empty). 
+    REMEMBER: Body Stack must be ANATOMICAL ONLY. Do NOT describe clothing, fabric, or accessories. Focus on bone structure, muscle tone, and skin.
     NAME INFERENCE: Assign a fitting name based on the subject's apparent heritage (e.g. 'Yuki' for Japanese, 'Elena' for Eastern European).
     Return JSON.`
   });
@@ -690,10 +691,20 @@ export const generateDatasetPrompts = async (
         responseMimeType: "application/json",
         responseSchema: schema,
         temperature: 1,
+        maxOutputTokens: 8192, // Ensure maximum context for large batches
       }
     });
 
-    const rawData = JSON.parse(response.text || "[]");
+    const rawData = (() => {
+      try {
+        return JSON.parse(response.text || "[]");
+      } catch (e) {
+        console.error("JSON Parse Failure. Response Length:", response.text?.length);
+        console.error("Snippet:", response.text?.substring(0, 500) + "...");
+        console.error("End Snippet:", response.text?.substring((response.text?.length || 0) - 500));
+        throw new Error(`AI Response Malformed (Length: ${response.text?.length}). Try reducing Batch Size.`);
+      }
+    })();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return rawData.map((item: any, idx: number) => {
@@ -718,3 +729,28 @@ export const generateDatasetPrompts = async (
 export const refineSinglePrompt = async (originalPrompt: string, instruction: string): Promise<string> => {
   return originalPrompt;
 }
+
+export const sanitizePrompt = async (unsafePrompt: string): Promise<string> => {
+  const ai = getAiClient();
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        parts: [{
+          text: `TASK: Rewrite the following Image Generation Prompt to be 100% Safe For Work and compliant with Safety Policies.
+          - Remove any NSFW, violent, or explicit terms.
+          - Keep the subject (Age/Ethnicity), Lighting, and Composition intact.
+          - If the clothing is "revealing", change it to "modest" or "casual".
+          - Return ONLY the raw string of the new prompt.
+
+          ORIGINAL PROMPT:
+          ${unsafePrompt}`
+        }]
+      }
+    });
+    return response.text || unsafePrompt;
+  } catch (e) {
+    console.error("Sanitization Failed:", e);
+    return unsafePrompt; // If sanitization fails, return original (will likely fail again, but graceful)
+  }
+};

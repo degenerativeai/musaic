@@ -1,64 +1,111 @@
-# Musaic - Dataset Architect
 
-A high-fidelity prompt engineering suite designed to generate, refine, and structure realistic datasets for AI training and evaluation (LoRA/Fine-tuning).
+<div align="center">
 
-![Musaic Screenshot](https://via.placeholder.com/800x450.png?text=Musaic+Interface)
+# 🧬 MUSAIC
+### Dataset Architect & Prompt Forge
 
-## Features
+[![React](https://img.shields.io/badge/React-18-blue?style=flat-square&logo=react)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite-Bundler-purple?style=flat-square&logo=vite)](https://vitejs.dev/)
+[![Gemini](https://img.shields.io/badge/Gemini-Pro-orange?style=flat-square&logo=google)](https://deepmind.google/technologies/gemini/)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-- **VisionStruct Analysis**: Extracts detailed biometric and physical profiles from reference images (Headshot/Bodyshot).
-- **The Century Protocol**: Generates datasets in batches of 100 with strict diversity and unique outfit enforcement.
-- **LoRA & Product Modes**: Specialized generation flows for influencer training sets or UGC product advertising.
-- **Secure BYOK Architecture**: Bring Your Own Key. API keys are stored in session storage and never transmitted to a backend.
+**Create strict-identity LoRA training datasets in minutes.**  
+*Browser-Based • Privacy-First • Forensic Consistency*
 
-## Tech Stack
+[Report Bug](https://github.com/degenerativeai/musaic/issues) · [Request Feature](https://github.com/degenerativeai/musaic/issues)
 
-- React 18 + TypeScript
-- Vite
-- Tailwind CSS
-- Google Gemini API (`@google/genai`)
+</div>
 
-## Desktop App (No Node.js Required)
+---
 
-Musaic is available as a standalone desktop application for Windows. This allows you to run the application without installing Node.js or using the command line.
+## ✨ Features
 
-**To get the installer:**
-1. Check the [Releases](https://github.com/degenerativeai/musaic/releases) page for the latest `Musaic Setup.exe`.
-2. Download and run the installer.
-3. Musaic will launch automatically.
+- **Zero Server Setup**: Runs 100% in your browser (or as a local Electron app).
+- **VisionStruct™ Analysis**: Forensic-level extraction of subject biometrics using Gemini Vision.
+- **Silent Face Protocol**: Prevents "Reference Ignored" bugs by stripping facial text while keeping body descriptions.
+- **Vacuum Compiler**: Assembles complex prompts with token-density ordering to prevent bleeding.
+- **Direct API**: Talk directly to Google Gemini or Wavespeed. No middleman servers.
+- **Auto-Zipping**: Downloads your dataset as a structured ZIP file ready for training.
 
-**To build the installer locally:**
-```bash
-npm run electron:build
+---
+
+## 🎯 How It Works
+
+Musaic treats prompt generation as a compilation task, not a creative writing one.
+
 ```
-The installer will be generated in the `release` folder.
+┌─────────────────────────────────────────────────────────────┐
+│                   YOUR BROWSER (CLIENT)                     │
+│                                                             │
+│   1. Upload Reference (Head/Body)                           │
+│   2. VisionStruct™ extracts "Biometric Profile" (JSON)      │
+│   3. Vacuum Compiler assembles 100+ unique prompts          │
+│      [Framing] + [Action] + [Body_Stack] + [Wardrobe]       │
+│                                                             │
+│   4. Silent Face Protocol sanitizes prompts                 │
+│   5. Generate Images (Batch Async)                          │
+│   6. Download as ZIP                                        │
+│                                                             │
+│   ═══════════════════════════════════════════════════════   │
+│                             │                               │
+│                             ▼                               │
+│                   GOOGLE / WAVESPEED API                    │
+│                  (High-Fidelity Generation)                 │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-## Getting Started
+---
 
-1. **Clone the repository**
+## 🚀 Quick Start
+
+### Option 1: Web App (Recommended)
+1. Clone the repo:
    ```bash
    git clone https://github.com/degenerativeai/musaic.git
    cd musaic
    ```
-
-2. **Install dependencies**
+2. Install & Run:
    ```bash
    npm install
-   ```
-
-3. **Run local server**
-   ```bash
    npm run dev
    ```
+3. Open `http://localhost:5173`.
 
-## Deployment on Vercel
+### Option 2: Desktop App (.exe)
+Prefer a standalone app? Build the Electron installer:
+```bash
+npm run electron:build
+```
+Find the installer in the `release/` folder.
 
-1. Fork this repository.
-2. Go to [Vercel](https://vercel.com).
-3. "Add New Project" -> Import your Musaic repository.
-4. Framework Preset: **Vite**.
-5. Deploy.
+---
 
-## License
+## 📦 Output Format
 
-MIT
+Your download will be a ZIP file containing optimized images for LoRA training:
+
+```
+CharacterName_Batch_Date.zip
+├── CharacterName_1.png    # "Headshot, dramatic lighting..."
+├── CharacterName_2.png    # "Full body, running, red dress..."
+├── CharacterName_3.png    # "Close up, makeup details..."
+└── ...
+```
+
+---
+
+## 🔑 API Key Security
+- **No Backend Storage**: Your key is stored ONLY in `sessionStorage`.
+- **Ephemeral**: Closing the tab wipes the key.
+- **Direct**: The key is sent only to Google/Wavespeed endpoints.
+
+## 💰 Cost
+- **Google Gemini**:  Free tier available (Gemini 1.5 Flash).
+- **Wavespeed**: Usage-based pricing.
+
+---
+
+<div align="center">
+Built with 💜 by Degenerative AI
+</div>
