@@ -101,7 +101,7 @@ CharacterName_Batch_Date.zip
 - **Direct**: The key is sent only to Google/Wavespeed endpoints.
 
 ## 💰 Cost
-- **Google Gemini**:  Free tier available (Gemini 1.5 Flash).
+- **Google Gemini**:  Usage-based pricing (Free tier rate limits are too low for batching). **Requires Pay-as-you-go key.**
 - **Wavespeed**: Usage-based pricing.
 
 ---
