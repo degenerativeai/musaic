@@ -1,0 +1,12 @@
+# Handle line endings automatically for files detected as text
+# and leave binary files untouched.
+* text=auto
+
+# Return consistent line endings key files
+*.js text
+*.json text
+*.css text
+*.html text
+*.md text
+*.ts text
+*.tsx text

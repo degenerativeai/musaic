@@ -40,6 +40,7 @@ export interface UGCSettings {
   customInstruction: string;
   modelId: string;
   mode?: 'social_prompt';
+  styleMode?: 'studio' | 'candid';
 }
 
 export interface SavedInfluencer {

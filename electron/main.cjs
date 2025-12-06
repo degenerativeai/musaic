@@ -62,6 +62,7 @@ function createWindow() {
             splashWindow.close();
             splashWindow = null;
         }
+        mainWindow.maximize();
         mainWindow.show();
         mainWindow.focus();
     });

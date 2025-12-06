@@ -34,7 +34,7 @@ export default function App() {
     const [taskType, setTaskType] = useState<TaskType>('lora');
     const [ugcMode, setUgcMode] = useState<'replicator' | 'injector' | 'creator'>('replicator');
     const [ugcGenerationType, setUgcGenerationType] = useState<'replicate' | 'inject' | 'social_prompt'>('replicate');
-    const [ugcSettings, setUgcSettings] = useState<UGCSettings>({ platform: 'instagram', customInstruction: '', modelId: 'gemini-2.5-flash' });
+    const [ugcSettings, setUgcSettings] = useState<UGCSettings>({ platform: 'instagram', customInstruction: '', modelId: 'gemini-2.5-flash', styleMode: 'candid' });
     const [ugcCustomInstruction, setUgcCustomInstruction] = useState('');
     const [safetyMode, setSafetyMode] = useState<SafetyMode>('sfw');
     const [taskTargets, setTaskTargets] = useState<{ [key in TaskType]: number }>({ lora: 100, product: 25, ugc: 5 });
@@ -504,10 +504,54 @@ export default function App() {
             return;
         }
 
+        // UGC Replicate/Inject Logic: Ensure analysis exists
+        let effectiveDescription = description;
+        if (taskType === 'ugc' && (ugcGenerationType === 'replicate' || ugcGenerationType === 'inject')) {
+            if (!targetImage) {
+                setError("Target Image required for Replicate/Inject.");
+                setIsGenerating(false);
+                return;
+            }
+
+            let currentAnalysis = analyzedScene;
+            if (!currentAnalysis) {
+                try {
+                    setBatchStatus("Analyzing Target Scene...");
+                    currentAnalysis = await analyzeImageWithDirective(targetImage, ugcSettings.modelId);
+                    setAnalyzedScene(currentAnalysis);
+                } catch (e: any) {
+                    setError("Analysis Failed: " + e.message);
+                    setIsGenerating(false);
+                    return;
+                }
+            }
+
+            if (currentAnalysis) {
+                if (ugcGenerationType === 'replicate') {
+                    // REPLICATE: Use EVERYTHING from Target (Identity + Scene)
+                    effectiveDescription = `
+            IDENTITY & BODY: ${currentAnalysis.subject_core.identity} ${currentAnalysis.subject_core.styling}
+            ATTIRE: ${currentAnalysis.attire_mechanics.garments}
+            POSE: ${currentAnalysis.anatomical_details.posture_and_spine} ${currentAnalysis.anatomical_details.limb_placement}
+            SCENE: ${currentAnalysis.environment_and_depth.background_elements}
+            `.trim();
+                } else {
+                    // INJECT: Use Target Scene/Pose/Attire, but KEEP User's Identity (description)
+                    // If user description is empty, falls back to AI invention or Identity Context
+                    effectiveDescription = `
+            ${description ? `IDENTITY & BODY: ${description}` : ''}
+            ATTIRE: ${currentAnalysis.attire_mechanics.garments}
+            POSE: ${currentAnalysis.anatomical_details.posture_and_spine} ${currentAnalysis.anatomical_details.limb_placement}
+            SCENE: ${currentAnalysis.environment_and_depth.background_elements}
+            `.trim();
+                }
+            }
+        }
+
         try {
             const newPrompts = await generateDatasetPrompts({
                 taskType,
-                subjectDescription: description,
+                subjectDescription: effectiveDescription,
                 identity,
                 safetyMode,
                 productImages: activeProducts,
@@ -945,6 +989,27 @@ export default function App() {
                                                         </div>
                                                     </label>
 
+                                                    {/* Style Mode Toggle for Replicate/Inject */}
+                                                    {(ugcGenerationType === 'replicate' || ugcGenerationType === 'inject') && (
+                                                        <div className="bg-black/20 border border-gray-700 rounded-lg p-3 flex items-center justify-between animate-in fade-in slide-in-from-top-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className={`p-1.5 rounded-md ${ugcSettings.styleMode === 'studio' ? 'bg-musaicPurple text-white' : 'bg-gray-700 text-gray-400'}`}>
+                                                                    <IconFlame className="w-4 h-4" />
+                                                                </div>
+                                                                <div>
+                                                                    <span className="text-xs font-bold text-white block">Style Mode</span>
+                                                                    <span className="text-[10px] text-gray-400 block">{ugcSettings.styleMode === 'studio' ? 'High Fidelity / Studio' : 'Amateur / Candid'}</span>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setUgcSettings(prev => ({ ...prev, styleMode: prev.styleMode === 'studio' ? 'candid' : 'studio' }))}
+                                                                className={`relative w-12 h-6 rounded-full transition-colors ${ugcSettings.styleMode === 'studio' ? 'bg-musaicPurple' : 'bg-gray-600'}`}
+                                                            >
+                                                                <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${ugcSettings.styleMode === 'studio' ? 'translate-x-6' : 'translate-x-0'}`} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+
                                                     <label className={`relative flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all ${ugcGenerationType === 'social_prompt' ? 'border-indigo-500 bg-indigo-500/10' : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'}`}>
                                                         <input
                                                             type="radio"
@@ -1131,28 +1196,29 @@ export default function App() {
                                 )}
                             </section>
 
-                            <section className="space-y-6">
-                                <div className="space-y-4">
-                                    <h2 className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-musaicPurple"></span>Dataset Configuration</h2>
 
-                                    {/* Workflow Mode Selector */}
-                                    <div className="bg-gray-800 rounded-xl p-1 grid grid-cols-2 gap-1 mb-6">
-                                        <button
-                                            onClick={() => setWorkflowMode('manual')}
-                                            className={`py-2 text-xs font-bold uppercase rounded-lg transition-all flex items-center justify-center gap-2 ${workflowMode === 'manual' ? 'bg-musaicPurple text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                                        >
-                                            <IconEdit className="w-4 h-4" /> Manual Control
-                                        </button>
-                                        <button
-                                            onClick={() => setWorkflowMode('api')}
-                                            className={`py-2 text-xs font-bold uppercase rounded-lg transition-all flex items-center justify-center gap-2 ${workflowMode === 'api' ? 'bg-musaicGold text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                                        >
-                                            <IconSparkles className="w-4 h-4" /> Auto / API Phase
-                                        </button>
-                                    </div>
+                            {taskType !== 'ugc' && (
+                                <section className="space-y-6">
+                                    <div className="space-y-4">
+                                        <h2 className="text-xs font-bold text-musaicPurple uppercase tracking-widest flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-musaicPurple"></span>Dataset Configuration</h2>
 
-                                    {/* Reference Images (Shared - Hidden in UGC) */}
-                                    {taskType !== 'ugc' && (
+                                        {/* Workflow Mode Selector */}
+                                        <div className="bg-gray-800 rounded-xl p-1 grid grid-cols-2 gap-1 mb-6">
+                                            <button
+                                                onClick={() => setWorkflowMode('manual')}
+                                                className={`py-2 text-xs font-bold uppercase rounded-lg transition-all flex items-center justify-center gap-2 ${workflowMode === 'manual' ? 'bg-musaicPurple text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                                            >
+                                                <IconEdit className="w-4 h-4" /> Manual Control
+                                            </button>
+                                            <button
+                                                onClick={() => setWorkflowMode('api')}
+                                                className={`py-2 text-xs font-bold uppercase rounded-lg transition-all flex items-center justify-center gap-2 ${workflowMode === 'api' ? 'bg-musaicGold text-black shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                                            >
+                                                <IconSparkles className="w-4 h-4" /> Auto / API Phase
+                                            </button>
+                                        </div>
+
+                                        {/* Reference Images (Shared - Hidden in UGC) */}
                                         <div className="space-y-3 animate-fade-in">
                                             <div className="bg-blue-900/20 border border-blue-900/50 p-3 rounded-lg flex gap-3">
                                                 <IconUser className="w-5 h-5 text-blue-400 shrink-0" />
@@ -1196,10 +1262,8 @@ export default function App() {
                                                 {isAnalyzing ? <><IconRefresh className="w-4 h-4 animate-spin" /> Analyzing...</> : <><IconSparkles className="w-4 h-4 text-musaicGold" /> Analyze Profile</>}
                                             </button>
                                         </div>
-                                    )}
 
-                                    {/* Identity Details & Reset (Hidden in UGC) */}
-                                    {taskType !== 'ugc' && (
+                                        {/* Identity Details & Reset (Hidden in UGC) */}
                                         <div className="space-y-3 pt-2 animate-fade-in">
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
@@ -1222,92 +1286,93 @@ export default function App() {
                                                 <textarea value={identity.backstory} onChange={(e) => setIdentity({ ...identity, backstory: e.target.value })} placeholder={taskType === 'lora' ? "Realism tags..." : "A brief backstory..."} rows={4} className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none resize-none" />
                                             </div>
                                         </div>
-                                    )}
 
-                                    {/* Workflow Specific: Manual */}
-                                    {workflowMode === 'manual' && (
-                                        <div className="space-y-3 pt-4 border-t border-gray-800 animate-fade-in-up">
-                                            <div className="flex justify-between text-xs font-mono text-gray-400"><span>Target Count</span><span className="text-white">{targetTotal} Prompts</span></div>
-                                            <input type="range" min="1" max="100" step="1" value={targetTotal} onChange={(e) => setTargetTotal(Number(e.target.value))} className="w-full" />
-                                            <div className="flex justify-between text-[10px] text-gray-600 font-mono"><span>1</span><span>100</span></div>
 
-                                            <button onClick={handleGenerateBatch} disabled={isGenerating || generatedCount >= targetTotal || !description} className={`w-full py-4 rounded-xl font-bold uppercase text-sm tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] ${generatedCount >= targetTotal ? 'bg-green-600 text-white cursor-default' : isGenerating ? 'bg-gray-700 text-gray-400 cursor-wait' : 'bg-gradient-to-r from-musaicPurple to-blue-600 text-white hover:shadow-musaicPurple/25'} `}>
-                                                {isGenerating ? <span className="flex items-center justify-center gap-2"><span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>Synthesizing...</span> : generatedCount >= targetTotal ? <span className="flex items-center justify-center gap-2"><IconCheck className="w-5 h-5" /> Complete</span> : `Generate Prompts`}
-                                            </button>
-                                        </div>
-                                    )}
+                                        {/* Workflow Specific: Manual */}
+                                        {workflowMode === 'manual' && (
+                                            <div className="space-y-3 pt-4 border-t border-gray-800 animate-fade-in-up">
+                                                <div className="flex justify-between text-xs font-mono text-gray-400"><span>Target Count</span><span className="text-white">{targetTotal} Prompts</span></div>
+                                                <input type="range" min="1" max="100" step="1" value={targetTotal} onChange={(e) => setTargetTotal(Number(e.target.value))} className="w-full" />
+                                                <div className="flex justify-between text-[10px] text-gray-600 font-mono"><span>1</span><span>100</span></div>
 
-                                    {/* Workflow Specific: API */}
-                                    {workflowMode === 'api' && (
-                                        <div className="space-y-4 pt-4 border-t border-gray-800 animate-fade-in-up">
-                                            {/* API Settings Panel */}
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Provider</label>
-                                                    <select value={imageProvider} onChange={(e) => setImageProvider(e.target.value as ImageProvider)} className="w-full bg-black/30 border border-gray-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-musaicGold [&>option]:bg-gray-900 [&>option]:text-white">
-                                                        <option value="google">Google (Nano Banana Pro)</option>
-                                                        <option value="wavespeed">Wavespeed</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Quality</label>
-                                                    <select value={resolution} onChange={(e) => setResolution(e.target.value as '2k' | '4k')} className="w-full bg-black/30 border border-gray-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-musaicGold [&>option]:bg-gray-900 [&>option]:text-white">
-                                                        <option value="2k">2K (Standard)</option>
-                                                        <option value="4k">4K (Ultra)</option>
-                                                    </select>
-                                                </div>
+                                                <button onClick={handleGenerateBatch} disabled={isGenerating || generatedCount >= targetTotal || !description} className={`w-full py-4 rounded-xl font-bold uppercase text-sm tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] ${generatedCount >= targetTotal ? 'bg-green-600 text-white cursor-default' : isGenerating ? 'bg-gray-700 text-gray-400 cursor-wait' : 'bg-gradient-to-r from-musaicPurple to-blue-600 text-white hover:shadow-musaicPurple/25'} `}>
+                                                    {isGenerating ? <span className="flex items-center justify-center gap-2"><span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>Synthesizing...</span> : generatedCount >= targetTotal ? <span className="flex items-center justify-center gap-2"><IconCheck className="w-5 h-5" /> Complete</span> : `Generate Prompts`}
+                                                </button>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Aspect Ratio</label>
-                                                    <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value as ImageAspect)} className="w-full bg-black/30 border border-gray-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-musaicGold [&>option]:bg-gray-900 [&>option]:text-white">
-                                                        <option value="1:1">1:1 (Square)</option>
-                                                        <option value="16:9">16:9 (Landscape)</option>
-                                                        <option value="9:16">9:16 (Portrait)</option>
-                                                        <option value="4:3">4:3 (Desktop)</option>
-                                                        <option value="3:4">3:4 (Mobile)</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Batch Size</label>
-                                                    <div className="flex items-center gap-2">
-                                                        <input type="range" min="10" max="100" step="10" value={targetTotal < 10 ? 10 : targetTotal} onChange={(e) => setTargetTotal(Number(e.target.value))} className="w-full" />
-                                                        <span className="text-xs font-mono text-white w-8 text-right">{targetTotal}</span>
+                                        )}
+
+                                        {/* Workflow Specific: API */}
+                                        {workflowMode === 'api' && (
+                                            <div className="space-y-4 pt-4 border-t border-gray-800 animate-fade-in-up">
+                                                {/* API Settings Panel */}
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Provider</label>
+                                                        <select value={imageProvider} onChange={(e) => setImageProvider(e.target.value as ImageProvider)} className="w-full bg-black/30 border border-gray-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-musaicGold [&>option]:bg-gray-900 [&>option]:text-white">
+                                                            <option value="google">Google (Nano Banana Pro)</option>
+                                                            <option value="wavespeed">Wavespeed</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Quality</label>
+                                                        <select value={resolution} onChange={(e) => setResolution(e.target.value as '2k' | '4k')} className="w-full bg-black/30 border border-gray-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-musaicGold [&>option]:bg-gray-900 [&>option]:text-white">
+                                                            <option value="2k">2K (Standard)</option>
+                                                            <option value="4k">4K (Ultra)</option>
+                                                        </select>
                                                     </div>
                                                 </div>
-                                            </div>
-
-                                            {imageProvider === 'wavespeed' && (
-                                                <div>
-                                                    <label className="text-[10px] uppercase font-bold text-gray-500 flex justify-between">Wavespeed API Key</label>
-                                                    <input type="password" value={wavespeedApiKey} onChange={(e) => setWavespeedApiKey(e.target.value)} placeholder="ws-..." className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Aspect Ratio</label>
+                                                        <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value as ImageAspect)} className="w-full bg-black/30 border border-gray-800 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-musaicGold [&>option]:bg-gray-900 [&>option]:text-white">
+                                                            <option value="1:1">1:1 (Square)</option>
+                                                            <option value="16:9">16:9 (Landscape)</option>
+                                                            <option value="9:16">9:16 (Portrait)</option>
+                                                            <option value="4:3">4:3 (Desktop)</option>
+                                                            <option value="3:4">3:4 (Mobile)</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block">Batch Size</label>
+                                                        <div className="flex items-center gap-2">
+                                                            <input type="range" min="10" max="100" step="10" value={targetTotal < 10 ? 10 : targetTotal} onChange={(e) => setTargetTotal(Number(e.target.value))} className="w-full" />
+                                                            <span className="text-xs font-mono text-white w-8 text-right">{targetTotal}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            )}
 
-                                            <div className="space-y-2">
-                                                <button
-                                                    onClick={handleStartApiJob}
-                                                    disabled={isGenerating || !description || (generatedCount >= targetTotal && generatedCount > 0)}
-                                                    className={`w-full py-4 rounded-xl font-bold uppercase text-sm tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] ${generatedCount >= targetTotal && generatedCount > 0 ? 'bg-green-600 text-white cursor-default' :
-                                                        isGenerating ? 'bg-gray-700 text-gray-400 cursor-wait' : 'bg-gradient-to-r from-musaicGold to-orange-500 text-black hover:shadow-orange-500/25'
-                                                        } `}
-                                                >
-                                                    {generatedCount >= targetTotal && generatedCount > 0 ? (
-                                                        <span className="flex items-center justify-center gap-2"><IconCheck className="w-5 h-5" /> Batch Complete</span>
-                                                    ) : isGenerating ? (
-                                                        <span className="flex items-center justify-center gap-2"><span className="w-2 h-2 bg-black rounded-full animate-bounce"></span>Starting Pipeline...</span>
-                                                    ) : (
-                                                        <span className="flex items-center justify-center gap-2"><IconSparkles className="w-5 h-5" /> Submit Prompts to API</span>
-                                                    )}
-                                                </button>
+                                                {imageProvider === 'wavespeed' && (
+                                                    <div>
+                                                        <label className="text-[10px] uppercase font-bold text-gray-500 flex justify-between">Wavespeed API Key</label>
+                                                        <input type="password" value={wavespeedApiKey} onChange={(e) => setWavespeedApiKey(e.target.value)} placeholder="ws-..." className="w-full bg-black/30 border border-gray-800 rounded-lg px-3 py-2 text-xs text-white focus:border-musaicPurple outline-none" />
+                                                    </div>
+                                                )}
 
-                                                {/* Progress Bar REMOVED per user request */}
+                                                <div className="space-y-2">
+                                                    <button
+                                                        onClick={handleStartApiJob}
+                                                        disabled={isGenerating || !description || (generatedCount >= targetTotal && generatedCount > 0)}
+                                                        className={`w-full py-4 rounded-xl font-bold uppercase text-sm tracking-widest transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98] ${generatedCount >= targetTotal && generatedCount > 0 ? 'bg-green-600 text-white cursor-default' :
+                                                            isGenerating ? 'bg-gray-700 text-gray-400 cursor-wait' : 'bg-gradient-to-r from-musaicGold to-orange-500 text-black hover:shadow-orange-500/25'
+                                                            } `}
+                                                    >
+                                                        {generatedCount >= targetTotal && generatedCount > 0 ? (
+                                                            <span className="flex items-center justify-center gap-2"><IconCheck className="w-5 h-5" /> Batch Complete</span>
+                                                        ) : isGenerating ? (
+                                                            <span className="flex items-center justify-center gap-2"><span className="w-2 h-2 bg-black rounded-full animate-bounce"></span>Starting Pipeline...</span>
+                                                        ) : (
+                                                            <span className="flex items-center justify-center gap-2"><IconSparkles className="w-5 h-5" /> Submit Prompts to API</span>
+                                                        )}
+                                                    </button>
+
+                                                    {/* Progress Bar REMOVED per user request */}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
 
-                                </div>
-                            </section>
+                                    </div>
+                                </section>
+                            )}
                             {(error || authError) && (
                                 <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-200 text-xs flex items-start gap-2 animate-fade-in"><span className="text-lg leading-none">!</span><div className="flex-1"><p>{error}</p>{authError && <button onClick={reEnterKey} className="underline hover:text-white mt-1">Re-enter API Key</button>}</div><button onClick={resetError} className="text-red-400 hover:text-white">✕</button></div>
                             )}

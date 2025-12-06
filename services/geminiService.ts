@@ -77,9 +77,17 @@ OPERATIONAL RULES:
 - Realism is mandatory.
 `;
 
-const RICH_MEDIA_DIRECTIVE = `
+const RICH_MEDIA_DIRECTIVE_CANDID = `
 # Context & Goal
-You are an expert at creating hyper-realistic image generation prompts optimized for AI image generators. Your prompts produce authentic smartphone photos, lifestyle shots, and natural photography.
+You are an expert at creating AUTONOMOUS, CANDID, and AMATEUR-STYLE image generation prompts. 
+Your goal is to simulate "Real Life" photography, not "Studio" photography.
+The images should look like they were taken by a friend with a smartphone, not a professional photographer.
+
+## AESTHETIC PROTOCOL: "THE SNAPSHOT"
+- **Camera Gear**: Phone cameras (iPhone/Pixel), disposable film cameras, Instax.
+- **Lighting**: Harsh on-camera flash, bad fluorescent lighting, uneven natural light, mixed lighting. NEVER perfect studio lighting.
+- **Framing**: Slightly off-center, Dutch angles, accidental cropping, messy backgrounds.
+- **Subject Behavior**: Eating, laughing mid-sentence, looking away, fixing hair, walking, yawning. NEVER posing perfectly for the camera.
 
 ## JSON Structure Template
 Always use this exact structure:
@@ -88,11 +96,11 @@ Always use this exact structure:
     "description": "[Action-based scene overview]",
     "mirror_rules": "[Rules for mirror selfies]",
     "age": "[Approx age]",
-    "expression": "[Emotion]",
+    "expression": "[Candid Emotion - e.g. mid-laugh, confused, bored]",
     "imperfections": {
        "skin": "[Texture/Pores/Flush]",
-       "hair": "[Flyaways/Messy strands]",
-       "general": "[Sweat/Creases/Lint]"
+       "hair": "[Flyaways/Messy strands/Bedhead]",
+       "general": "[Sweat/Creases/Lint/Stains]"
     },
     "body": "[Physical Profile - injected]",
     "clothing": { "top": {...}, "bottom": {...} },
@@ -101,18 +109,63 @@ Always use this exact structure:
   "accessories": { ... },
   "photography": { "camera_style": "...", "angle": "...", "shot_type": "..." },
   "tech_specs": {
-    "camera_physics": "[Depth of field, bokeh, chromatic aberration]",
-    "sensor_fidelity": "[ISO noise, film grain, sharpness]",
-    "lighting_physics": "[Subsurface scattering, volumetric rays]"
+    "camera_physics": "[Motion blur, harsh flash, red-eye, noise, grain]",
+    "sensor_fidelity": "[Phone sensor noise, JPEG artifacts, overexposure]",
+    "lighting_physics": "[Direct flash, hard shadows, mixed color temperature]"
   },
   "background": { "setting": "...", "elements": [...] }
 }
 
 CRITICAL RULES:
-1. NO STRUCTURAL FACE DESCRIPTION (Eyes/Nose/Jaw are handled by reference image). Only makeup/expression/imperfections.
-2. UNIQUE OUTFITS per item.
-3. POPULATE IMPERFECTIONS.
-4. MANDATORY REALISM: You MUST populate 'tech_specs' with high-fidelity terms (e.g. 'chromatic aberration', 'subsurface scattering', 'sensor bloom').
+1. **IDENTITY LOCK**: You MUST adhere to the [Physical Profile] injected in the "subject.body" or "subject.description". Do not hallucinate new hair colors, ethnicities, or body types.
+2. **NO 'MODEL' BEHAVIOR**: Subject should generally NOT be looking directly at the lens unless it's a selfie.
+3. **UNIQUE OUTFITS**: Never repeat an outfit.
+4. **MANDATORY IMPERFECTIONS**: Make it look real. Stains, wrinkles, mess.
+5. **TECH SPECS**: Must include terms like 'direct flash', 'phone camera', 'motion blur', 'high ISO'.
+`;
+
+const RICH_MEDIA_DIRECTIVE_STUDIO = `
+# Context & Goal
+You are an expert at creating HYPER-REALISTIC, HIGH-FIDELITY, and CINEMATIC image generation prompts.
+Your goal is to simulate "High-End Commercial/Editorial" photography.
+The images should look like they were taken by a world-class professional photographer with top-tier equipment.
+
+## AESTHETIC PROTOCOL: "THE STUDIO"
+- **Camera Gear**: Phase One XF, Hasselblad, Leica, Sony A7R V (85mm f/1.2).
+- **Lighting**: Softbox, Rim Lighting, Volumetric God Rays, Golden Hour, REMBRANDT Lighting. Perfect exposure.
+- **Framing**: Rule of thirds, Golden Ratio, Cinematic composition, Depth of Field (Bokeh).
+- **Subject Behavior**: Confident, Professional Model, Intense Gaze, Dynamic Posing, "Vogue" style.
+
+## JSON Structure Template
+Always use this exact structure:
+{
+  "subject": {
+    "description": "[Cinematic scene overview]",
+    "age": "[Approx age]",
+    "expression": "[Intense/Professional Emotion]",
+    "imperfections": {
+       "skin": "[Hyper-detailed texture, micropores, biological realism]",
+       "hair": "[Detailed strands, perfect volume]",
+       "general": "[Realistic fabric texture]"
+    },
+    "body": "[Physical Profile - injected]",
+    "clothing": { "top": {...}, "bottom": {...} },
+    "face": { "makeup": "..." }
+  },
+  "accessories": { ... },
+  "photography": { "camera_style": "...", "angle": "...", "shot_type": "..." },
+  "tech_specs": {
+    "camera_physics": "[Depth of field, bokeh, chromatic aberration (subtle), 8k, raw photo]",
+    "sensor_fidelity": "[Zero noise, extreme sharpness, high dynamic range]",
+    "lighting_physics": "[Subsurface scattering, volumetric rays, caustic lighting]"
+  },
+  "background": { "setting": "...", "elements": [...] }
+}
+
+CRITICAL RULES:
+1. **HIGH FIDELITY**: Must specify camera gear (e.g. '85mm f/1.2', 'Phase One').
+2. **PERFECT LIGHTING**: Use terms like 'Rembrandt lighting', 'Volumetric'.
+3. **DETAIL**: Focus on 'micropores', 'fabric texture', 'sharp focus'.
 `;
 
 const VISION_STRUCT_DIRECTIVE = `
@@ -144,11 +197,11 @@ You are VisionStruct Ultra, a forensic-level computer vision analyst. Your goal 
     "shadow_play": "How shadows interact with the subject's curves/features"
   },
   "subject_core": {
-    "identity": "CRITICAL: Ethnicity/Heritage (be specific), Age, Eye Color (e.g. 'amber', 'hazel'), Eye Shape, Body Morphology. IF CELEBRITY RECOGNIZED: Explicitly name them (e.g. 'an adult woman that looks just like Sydney Sweeney') to lock likeness.",
-    "styling": "Hair texture/style, makeup details, skin finish (matte/dewy).",
+    "identity": "CRITICAL: Ethnicity/Heritage (be specific), Age, Eye Color, Face Shape (e.g. 'diamond', 'oval', 'square'), Jawline definition. IF CELEBRITY RECOGNIZED: Explicitly name them.",
+    "styling": "Hair texture (type 1-4c), Exact Length (e.g. 'shoulder length', 'mid-back'), Parting (middle/side), makeup details.",
     "imperfections": {
-        "skin": "Texture, pores, flush, freckles, scars.",
-        "hair": "Flyaways, messy strands, frizz, baby hairs.",
+        "skin": "Texture, pores, flush, freckles, scars, moles (map them).",
+        "hair": "Flyaways, messy strands, frizz, baby hairs, hairline details.",
         "general": "Sweat, creases, lint, dust, asymmetry."
     }
   },
@@ -570,19 +623,19 @@ export const generateDatasetPrompts = async (
 
       switch (platform) {
         case 'instagram':
-          platformRules = "AESTHETIC: Curated perfection, high contrast, trending fashion, 'golden hour' lighting, visually pleasing composition.";
+          platformRules = "AESTHETIC: Authentic lifestyle, 'photo dump' style, casual snapshots, flash photography, natural imperfections. NOT curated perfection.";
           break;
         case 'tiktok':
-          platformRules = "VIBE: Authentic, 'behind the scenes', dynamic motion, ring light or natural window light, engaging hook, slightly messy/real.";
+          platformRules = "VIBE: Raw, unpolished, phone camera quality, messy, behind-the-scenes, candid motion. NOT produced.";
           break;
         case 'linkedin':
-          platformRules = "PROFESSIONAL: Polished, confident, office/workspace/conference settings, smart casual or business attire, success-oriented.";
+          platformRules = "PROFESSIONAL: Natural, approachable, candid workspace moments, relaxed confidence. NOT stiff or overly polished.";
           break;
         case 'youtube':
-          platformRules = "THUMBNAIL QUALITY: High saturation, expressive face, clear subject separation, storytelling elements, engaging eye contact.";
+          platformRules = "THUMBNAIL QUALITY: Expressive, high energy, but grounded in reality. Real texture, not plastic.";
           break;
         default:
-          platformRules = "GENERAL SOCIAL: High quality lifestyle photography, engaging and shareable.";
+          platformRules = "GENERAL SOCIAL: Candid lifestyle photography, authentic moments, phone camera aesthetic.";
       }
 
       ugcDirective = `
@@ -594,9 +647,12 @@ export const generateDatasetPrompts = async (
 
     // Social Media Mode Logic (Text-to-Prompt)
     if (taskType === 'ugc' && ugcSettings?.mode === 'social_prompt') {
-      const { customInstruction } = ugcSettings;
+      const { customInstruction, styleMode } = ugcSettings;
+
+      const SELECTED_DIRECTIVE = styleMode === 'studio' ? RICH_MEDIA_DIRECTIVE_STUDIO : RICH_MEDIA_DIRECTIVE_CANDID;
+
       promptText = `
-        ${RICH_MEDIA_DIRECTIVE}
+        ${SELECTED_DIRECTIVE}
 
       MODE: SOCIAL MEDIA TEXT - TO - PROMPT
         USER INSTRUCTION: "${customInstruction}"
@@ -636,8 +692,12 @@ export const generateDatasetPrompts = async (
         clothingDirective = `WARDROBE: ANATOMICAL.Fit should be "second-skin", "form-fitting".`;
       }
 
+      const SELECTED_DIRECTIVE = (taskType === 'ugc' && ugcSettings?.styleMode === 'studio')
+        ? RICH_MEDIA_DIRECTIVE_STUDIO
+        : RICH_MEDIA_DIRECTIVE_CANDID;
+
       promptText = `
-            ${RICH_MEDIA_DIRECTIVE}
+            ${SELECTED_DIRECTIVE}
             IDENTITY CONTEXT:
       Name: ${identity.name}
       Profession: ${identity.profession}

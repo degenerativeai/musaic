@@ -10,7 +10,7 @@
     "dev": "vite --port 5175 --strictPort",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"wait-on http://localhost:5175 && \\\"node_modules/electron/dist/electron.exe\\\" .\"",
+    "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"wait-on http://localhost:5175 && electron .\"",
     "electron:build": "vite build && electron-builder"
   },
   "build": {
